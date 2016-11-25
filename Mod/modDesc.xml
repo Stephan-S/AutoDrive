@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<modDesc descVersion="30">
+    <author>Balu</author>
+	<title>
+		<en>AutoDrive</en>
+		<de>AutoDrive</de>
+	</title>
+	<description>
+		<en>
+<![CDATA[ToDO
+]]>
+		</en>
+		<de>
+<![CDATA[ToDO
+]]>
+	   </de>
+	</description>
+    <version>0.7.1</version>
+	<multiplayer supported="true"/>   
+	<iconFilename>store.dds</iconFilename>
+    <extraSourceFiles>
+        <sourceFile filename="register.lua" />
+    </extraSourceFiles>
+	<l10n>
+		<text name="UNKNOWN">	           			<en>Unknown</en>         				<de>Unbekannt</de>		        		</text>
+		<text name="input_ADToggleHud"> 			<en>AD: Toggle HUD</en> 				<de>AD: HUD ein/ausblenden</de>			</text>	
+		<text name="input_ADEnDisable"> 			<en>AD: En/Disable</en> 				<de>AD: Ein/Ausschalten</de>			</text>		
+		<text name="input_ADSilomode">  			<en>AD: Silomode</en>  					<de>AD: Silomodus</de>					</text>		
+		<text name="input_ADRoundtrip"> 			<en>AD: Roundtrip</en>  				<de>AD: Rundkurs</de>					</text>		
+		<text name="input_ADRecord">  				<en>AD: Record</en>  					<de>AD: Aufzeichnen</de>				</text>		
+		<text name="input_ADSelectTarget">			<en>AD: Select Target</en>  			<de>AD: Ziel wählen</de>				</text>			
+		<text name="input_ADSelectPreviousTarget">	<en>AD: Select Previous Target</en>  	<de>AD: Voriges Ziel wählen</de>		</text>				
+		<text name="input_AD_Speed_up">				<en>AD: Increase Speed</en>  			<de>AD: Geschwindigkeit erhöhen</de>	</text>				
+		<text name="input_AD_Speed_down">			<en>AD: Decrease Speed</en>  			<de>AD: Geschwindigkeit verringern</de>	</text>	
+			
+		<text name="input_ADActivateDebug">			<en>AD: Activate Debug Mode</en> 		<de>AD: Debug Modus aktivieren</de>		</text>		
+		<text name="input_ADDebugShowClosest">		<en>AD: Show Closest Point</en>  		<de>AD: Naheliegendsten Punkt anzeigen</de>		</text>		
+		<text name="input_ADDebugSelectNeighbor">	<en>AD: Select Neighbor Point</en>  	<de>AD: Nachbarpunkt wählen</de>		</text>		
+		<text name="input_ADDebugChangeNeighbor">	<en>AD: Select next Neighbor Point</en> <de>AD: Nächsten Nachbarpunkt wählen</de>		</text>		
+		<text name="input_ADDebugCreateConnection">	<en>AD: Create connection between</en>  <de>AD: Verbindung herstellen</de>		</text>		
+		<text name="input_ADDebugCreateMapMarker">	<en>AD: Create new Target</en>  		<de>AD: Neues Ziel erstellen</de>		</text>		
+		<text name="input_ADDebugDeleteWayPoint">	<en>AD: Delete Waypoint</en>  			<de>AD: Wegpunkt löschen</de>		</text>	
+    
+		<text name="AD_Deactivated">	<en>AutoDrive stopped</en>  			<de>AutoDrive aus</de>				</text>	
+		<text name="AD_Activated">		<en>AutoDrive started</en>  			<de>AutoDrive an</de>				</text>	
+		
+		<text name="AD_Silomode_on">	<en>Silomode on</en>  					<de>Silomodus an</de>				</text>	
+		<text name="AD_Silomode_off">	<en>Silomode off</en>  					<de>Silomodus aus</de>				</text>	
+		<text name="AD_Roundtrip_off">	<en>Roundtrip off</en>  				<de>Rundkurs aus</de>				</text>	
+		<text name="AD_Roundtrip_on">	<en>Roundtrip on</en>  					<de>Rundkurs an</de>				</text>	
+		<text name="AD_Recording_off">	<en>Stopped Recording</en>  			<de>Aufzeichnen beendet</de>		</text>	
+		<text name="AD_Recording_on">	<en>Started Recording</en>  			<de>Aufzeichnen gestartet</de>		</text>	
+		
+		<text name="AD_Selected_Target">	<en>Selected Target: </en>  			<de>Gewähltes Ziel: </de>		</text>	
+		<text name="AD_Debug_on">	
+			<en>Debug mode - Warning. Only for Developers.</en> 
+			<de>Debug Modus: Vorsicht, nur für Entwickler oder erfahrene Nutzer</de>
+		</text>	
+		<text name="AD_Debug_off">	
+			<en>Debug mode - off</en> 
+			<de>Debug Modus: aus</de>
+		</text>	
+		
+		<text name="AD_Debug_show_closest">	
+			<en>Debug mode - closest waypoint marked</en> 
+			<de>Debug Modus: nächster Wegpunkt wird angezeigt</de>
+		</text>	
+		
+		<text name="AD_Debug_show_closest_off">	
+			<en>Debug mode - stopped marking closest waypoint</en> 
+			<de>Debug Modus: nächster Wegpunkt wird nicht mehr angezeigt</de>
+		</text>	
+		
+		<text name="AD_Debug_show_closest_neighbors">	
+			<en>Debug mode - Showing possible connection points</en> 
+			<de>Debug Modus: mögliche Verbindungspunkte werden markiert</de>
+		</text>	
+		
+		<text name="AD_Debug_change_connection">	
+			<en>Debug mode - connection established / destroyed</en> 
+			<de>Debug Modus: Verbindungspunkte hergestellt / entfernt</de>
+		</text>	
+		
+		<text name="AD_Debug_not_ready">	
+			<en>Debug mode - not ready</en> 
+			<de>Debug Modus: nicht bereit</de>
+		</text>	
+		
+		<text name="AD_Debug_closest">	
+			<en>Closest Waypoint: </en> 
+			<de>Nähester Wegpunkt: </de>
+		</text>
+		
+		<text name="AD_Debug_waypoint_created_1">	
+			<en>New Waypoint created. Edit name in the AutoDrive_config.XML with id: </en> 
+			<de>Neues Ziel erstellt. Passen Sie den Namen in der AutoDrive_config.xml an. Ziel ID: </de>
+		</text>
+		
+		<text name="AD_Debug_waypoint_created_2">	
+			<en> after exiting the game. Then restart!</en> 
+			<de> Erst Spiel beenden!</de>
+		</text>
+		
+		<text name="AD_Speed_set_to">	
+			<en>Speed set to:</en> 
+			<de>Geschwindigkeit gesetzt auf:</de>
+		</text>
+		
+		<text name="AD_Hof">	
+			<en>Farm</en> 
+			<de>Hof</de>
+		</text>
+		
+		<text name="AD_Kuhstall">	
+			<en>Cows</en> 
+			<de>Kuhstall</de>
+		</text>
+		
+		<text name="AD_Schweinestall">	
+			<en>Pigs</en> 
+			<de>Schweinestall</de>
+		</text>
+		
+		<text name="AD_Schafweide">	
+			<en>Sheeps</en> 
+			<de>Schafweide</de>
+		</text>
+		
+		<text name="AD_Tankstelle">	
+			<en>Gas station</en> 
+			<de>Tankstelle</de>
+		</text>
+		
+		<text name="AD_Viehhandel">	
+			<en>Animal Shop</en> 
+			<de>Viehhandel</de>
+		</text>
+		
+		<text name="AD_Driver_of">	
+			<en>Driver of</en> 
+			<de>Der Fahrer von</de>
+		</text>
+		
+		<text name="AD_has_reached">	
+			<en>has reached</en> 
+			<de>ist angekommen bei</de>
+		</text>
+		
+		<text name="AD_got_stuck">	
+			<en>got stuck</en> 
+			<de>hat sich fest gefahren</de>
+		</text>
+		
+	</l10n>
+	
+	<inputBindings>			
+		<input name="ADToggleHud" 				category="VEHICLE" key1="KEY_lalt KEY_KP_0"   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADRecord" 					category="VEHICLE" key1="KEY_lctrl KEY_left"   			key2="" button="" device="0" mouse="" />   		
+		<input name="ADRoundtrip" 				category="VEHICLE" key1=""						   		key2="" button="" device="0" mouse="" />   		
+		<input name="ADSilomode" 				category="VEHICLE" key1="KEY_lctrl KEY_up"   			key2="" button="" device="0" mouse="" />   
+		<input name="ADEnDisable" 				category="VEHICLE" key1="KEY_lctrl KEY_down"   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADSelectTarget" 			category="VEHICLE" key1="KEY_lalt KEY_right"   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADSelectPreviousTarget" 	category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" /> 
+		<input name="AD_Speed_up" 				category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" /> 
+		<input name="AD_Speed_down" 			category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" /> 
+		
+		<input name="ADActivateDebug" 			category="VEHICLE" key1=""   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADDebugShowClosest" 		category="VEHICLE" key1=""   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADDebugSelectNeighbor" 	category="VEHICLE" key1=""   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADDebugChangeNeighbor" 	category="VEHICLE" key1=""   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADDebugCreateConnection" 	category="VEHICLE" key1=""   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADDebugCreateMapMarker" 	category="VEHICLE" key1=""   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADDebugDeleteWayPoint" 	category="VEHICLE" key1=""   			key2="" button="" device="0" mouse="" /> 
+    </inputBindings>
+	
+</modDesc>
+
