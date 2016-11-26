@@ -1267,6 +1267,7 @@ function AutoDrive:shortestPath(Graph,distance,pre,start,endNode)
 end;
 
 function init(self)
+	local aNameSearch = {"vehicle.name." .. g_languageShort, "vehicle.name.en", "vehicle.name", "vehicle.storeData.name", "vehicle#type"};
 	self.bDisplay = 1; 
 	if self.ad == nil then
 		self.ad = {};
