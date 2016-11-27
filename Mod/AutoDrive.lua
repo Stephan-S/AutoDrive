@@ -541,26 +541,45 @@ function AutoDrive:loadHud()
 	AutoDrive.Hud.Background.height = AutoDrive.Hud.height;
 	AutoDrive.Hud.Background.img = result;
 	
+	--[[
+	AutoDrive.Hud.Background.target = {};
+	img1 = Utils.getNoNil("img/ADHud_new.dds", "empty.dds" )
+	state, result = pcall( Utils.getFilename, img1, AutoDrive.directory )
+	if not state then
+		print("ERROR: "..tostring(result).." (img1: "..tostring(img1)..")")
+		return
+	end
+	AutoDrive.Hud.Background.target.ov = Overlay:new(nil, result, AutoDrive.Hud.posX, AutoDrive.Hud.posY , AutoDrive.Hud.width, AutoDrive.Hud.height);
+	AutoDrive.Hud.Background.target.posX = AutoDrive.Hud.posX;
+	AutoDrive.Hud.Background.target.posY = AutoDrive.Hud.posY;
+	AutoDrive.Hud.Background.target.width = AutoDrive.Hud.width;
+	AutoDrive.Hud.Background.height = AutoDrive.Hud.height;
+	AutoDrive.Hud.Background.img = result;
+	--]]
 
-	AutoDrive:AddButton("input_start_stop", "on.dds", "off.dds", false);
-	AutoDrive:AddButton("input_previousTarget", "previousTarget.dds", "button.dds", true);
-	AutoDrive:AddButton("input_nextTarget", "nextTarget.dds", "button.dds", true);
-	AutoDrive:AddButton("input_record", "record_on.dds", "record_off.dds", false);
-	AutoDrive:AddButton("input_silomode", "silomode_on.dds", "silomode_off.dds", false);
-	AutoDrive:AddButton("input_decreaseSpeed", "decreaseSpeed.dds", "empty.dds", true);
-	AutoDrive:AddButton("input_increaseSpeed", "increaseSpeed.dds", "empty.dds", true);
+	AutoDrive:AddButton("input_start_stop", "on.dds", "off.dds", false, true);
+	AutoDrive:AddButton("input_previousTarget", "previousTarget.dds", "previousTarget.dds", true, true);
+	AutoDrive:AddButton("input_nextTarget", "nextTarget.dds", "nextTarget.dds", true, true);
+	AutoDrive:AddButton("input_record", "record_on.dds", "record_off.dds", false, true);
+	AutoDrive:AddButton("input_silomode", "silomode_on.dds", "silomode_off.dds", false, true);
+	AutoDrive:AddButton("input_decreaseSpeed", "decreaseSpeed.dds", "decreaseSpeed.dds", true, true);
+	AutoDrive:AddButton("input_increaseSpeed", "increaseSpeed.dds", "increaseSpeed.dds", true, true);
 	
-	AutoDrive:AddButton("input_debug", "debug_on.dds", "debug_off.dds", false);
-	AutoDrive:AddButton("input_showClosest", "showClosest_on.dds", "showClosest_off.dds", false);
-	AutoDrive:AddButton("input_showNeighbor", "showNeighbor_on.dds", "showNeighbor_off.dds", false);
-	AutoDrive:AddButton("input_nextNeighbor", "nextNeighbor.dds", "hire_on.dds", true);
-	AutoDrive:AddButton("input_toggleConnection", "toggleConnection.dds", "hire_on.dds", true);
-	AutoDrive:AddButton("input_createMapMarker", "createMapMarker.dds", "hire_on.dds", true);
-	AutoDrive:AddButton("input_toggleHud", "close.dds", "empty.dds", true);
+	AutoDrive:AddButton("input_debug", "debug_on.dds", "debug_off.dds", false, true);
+	AutoDrive:AddButton("input_showClosest", "showClosest_on.dds", "showClosest_off.dds", false, true);
+	AutoDrive:AddButton("input_showNeighbor", "showNeighbor_on.dds", "showNeighbor_off.dds", false, true);
+	AutoDrive:AddButton("input_nextNeighbor", "nextNeighbor.dds", "nextNeighbor.dds", true, true);
+	AutoDrive:AddButton("input_toggleConnection", "toggleConnection.dds", "toggleConnection.dds", true, true);
+	AutoDrive:AddButton("input_createMapMarker", "createMapMarker.dds", "createMapMarker.dds", true, true);
+	AutoDrive:AddButton("input_toggleHud", "close.dds", "close.dds", true, true);
+	
+	
+	AutoDrive:AddButton("input_recalculate", "recalculate.dds", "recalculate.dds", true, false);
+	AutoDrive:AddButton("input_removeWaypoint", "deleteWaypoint.dds", "deleteWaypoint.dds", true, false);
 
 end;
 
-function AutoDrive:AddButton(name, img, img2, on)
+function AutoDrive:AddButton(name, img, img2, on, visible)
 	
 	AutoDrive.Hud.buttonCounter = AutoDrive.Hud.buttonCounter + 1;	
 	AutoDrive.Hud.colCurrent = AutoDrive.Hud.buttonCounter % AutoDrive.Hud.cols;
@@ -581,6 +600,7 @@ function AutoDrive:AddButton(name, img, img2, on)
 	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].height = AutoDrive.Hud.buttonHeight;
 	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].name = name;
 	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_on = result;
+	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].isVisible = visible;
 	
 	if img2 ~= nil then 
 		buttonImg = Utils.getNoNil("img/" .. img2, "empty.dds" )
@@ -942,12 +962,30 @@ function AutoDrive:InputHandling(vehicle, input)
 				vehicle.bCreateMapMarker  = true;
 				vehicle.bEnteringMapMarker = true;
 				vehicle.sEnteredMapMarkerString = "";
+				g_currentMission.isPlayerFrozen = true;
+				vehicle.isBroken = true;
+				
+				--g_currentMission.player.lockedInput = true;
+				--g_currentMission.player.isEntered = false;
+				--g_currentMission.player.isControlled = false;
+				--g_currentMission.manualPaused = true;
+				
+				--g_currentMission.controlPlayer = false;
 				--vehicle.printMessage = "Changing entry for highlighted markers";
 				--vehicle.nPrintTime = 10000;
+				
+				--DebugUtil.printTableRecursively(InputBinding, ".",0,5);
+				
+				
 			else
 				vehicle.bCreateMapMarker  = false;
-				--vehicle.printMessagesEnteredMapMarkerString = ""; = "Not ready";
-				--vehicle.nPrintTime = 3000;
+				vehicle.bEnteringMapMarker = false;
+				vehicle.sEnteredMapMarkerString = "";				
+				g_currentMission.isPlayerFrozen = false;
+				vehicle.isBroken = false;
+				
+				vehicle.printMessages = "Not ready";
+				vehicle.nPrintTime = 3000;
 			end;
 			
 		end; 
@@ -1004,7 +1042,30 @@ function AutoDrive:InputHandling(vehicle, input)
 				
 		end;
 		
-		
+		if input == "input_recalculate" then
+			for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+					point.marker = {};
+				end;
+			
+				print("AD: recalculating routes");
+				for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+					
+					local tempAD = AutoDrive:dijkstra(g_currentMission.AutoDrive.mapWayPoints, marker.id,"incoming");
+					
+					for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+								
+						point.marker[marker.name] = tempAD.pre[point.id];
+									
+					end;
+					
+					
+				end;
+				if g_currentMission.AutoDrive.adXml ~= nil then
+					setXMLString(g_currentMission.AutoDrive.adXml, "AutoDrive.Recalculation","false");
+					AutoDrive:MarkChanged();
+					g_currentMission.AutoDrive.handledRecalculation = true;
+				end;
+		end;
 	end;
 
 end;
@@ -1250,7 +1311,7 @@ function init(self)
 	
 	self.bStopAD = false;
 	self.bCreateMapMarker = false;
-	self.bEnteringMapMarkerString = false;
+	self.bEnteringMapMarker = false;
 	self.sEnteredMapMarkerString = "";
 	
 	if Steerable.load ~= nil then 
@@ -1334,7 +1395,7 @@ function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
 			
 			for _,button in pairs(AutoDrive.Hud.Buttons) do
 				
-				if posX > button.posX and posX < (button.posX + button.width) and posY > button.posY and posY < (button.posY + button.height) then
+				if posX > button.posX and posX < (button.posX + button.width) and posY > button.posY and posY < (button.posY + button.height) and button.isVisible then
 					--print("Clicked button " .. button.name);
 					AutoDrive:InputHandling(self, button.name);
 				end;
@@ -1348,28 +1409,28 @@ function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
 end; 
 
 function AutoDrive:keyEvent(unicode, sym, modifier, isDown) 
-	--[[
+	
 	if self == g_currentMission.controlledVehicle then
-		
-		if isDown and sym == Input.KEY_up and bitAND(modifier, Input.MOD_CTRL) > 0 then 
-			if self.bReverseTrack == false then
-				self.bReverseTrack = true;
-				--print("reverse track = true");
-				self.printMessage = "Set to Reverse Track";
-				self.nPrintTime = 3000;
+	
+		--print("Unicode: " .. unicode .. " sym: " .. sym);
+	
+		if isDown and self.bEnteringMapMarker then 
+			if sym == 13 then
+				self.bEnteringMapMarker = false;
+				self.isBroken = false;
 			else
-				self.bReverseTrack = false;	
-				self.bDrivingForward = true;
-				--print("reverse track = false");
-				self.printMessage = "Disabled Reverse Track";
-				self.nPrintTime = 3000;
+				if sym == 8 then
+					self.sEnteredMapMarkerString = string.sub(self.sEnteredMapMarkerString,1,string.len(self.sEnteredMapMarkerString)-1)
+				else
+					if unicode ~= 0 then
+						self.sEnteredMapMarkerString = self.sEnteredMapMarkerString .. string.char(unicode);
+					end;
+				end;
 			end;
-			
-		end; 
+		end;
 	
 	end;
 	
-	--]]
 end; 
 
 function AutoDrive:deactivate(self,stopVehicle)
@@ -1404,7 +1465,10 @@ function AutoDrive:update(dt)
 	if self == g_currentMission.controlledVehicle then
 		--self.printMessage = "Vehicle: " .. self.name;
 		--self.nPrintTime = 3000;
-	
+		
+		
+		
+		
 		if InputBinding.hasEvent(InputBinding.ADSilomode) then
 			
 			--print("sending event to InputHandling");
@@ -1825,7 +1889,31 @@ function AutoDrive:updateButtons(vehicle)
 			end;
 			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
 		end;
-	
+		
+		if button.name == "input_recalculate" then
+			local buttonImg = "";
+			if AutoDrive:GetChanged() == true then
+				button.img_active = button.img_on;		
+				button.isVisible = true;
+			else
+				button.img_active = button.img_off;
+				button.isVisible = false;
+			end;
+			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+		end;
+		
+		if button.name == "input_removeWaypoint" then
+			local buttonImg = "";
+			if AutoDrive:GetChanged() == true then
+				button.img_active = button.img_on;		
+				button.isVisible = true;
+			else
+				button.img_active = button.img_off;
+				button.isVisible = false;
+			end;
+			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+		end;
+		
 	end;
 
 end;
@@ -1950,6 +2038,8 @@ function AutoDrive:draw()
 					self.printMessage = g_i18n:getText("AD_Debug_waypoint_created_1") .. closest .. g_i18n:getText("AD_Debug_waypoint_created_2");
 					self.nPrintTime = 30000;
 					AutoDrive:MarkChanged();
+					g_currentMission.isPlayerFrozen = false;
+					--g_currentMission.controlPlayer = true;
 					
 					
 				end;
@@ -1985,6 +2075,19 @@ function AutoDrive:draw()
 										removeXMLProperty(g_currentMission.AutoDrive.adXml, "AutoDrive." .. g_currentMission.autoLoadedMap .. ".waypoints.wp".. closest ..".out_cost" .. i) ;
 									end;
 									
+									local incomingExists = false;
+									for _,i2 in pairs(g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming) do
+										if i2 == closest or incomingExists then
+											incomingExists = true;
+											if g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_ + 1] ~= nil then
+												g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_] = g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_ + 1];
+												g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_ + 1] = nil;
+											else
+												g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_] = nil;
+											end;
+										end;
+									end;
+									
 									exists = true;
 								else							
 									out_counter = out_counter +1;
@@ -1995,6 +2098,13 @@ function AutoDrive:draw()
 						if exists == false then
 							g_currentMission.AutoDrive.mapWayPoints[closest].out[out_counter] = self.DebugPointsIterated[self.nSelectedDebugPoint].id;
 							g_currentMission.AutoDrive.mapWayPoints[closest].out_cost[out_counter] = 1;
+							
+							local incomingCounter = 1;
+							for _,id in pairs(self.DebugPointsIterated[self.nSelectedDebugPoint].incoming) do
+								incomingCounter = incomingCounter + 1;
+							end;
+							self.DebugPointsIterated[self.nSelectedDebugPoint].incoming[incomingCounter] = g_currentMission.AutoDrive.mapWayPoints[closest].id;
+							
 							AutoDrive:MarkChanged()
 						end;
 						
@@ -2052,42 +2162,72 @@ function AutoDrive:drawHud(vehicle)
 		
 		local buttonWidth = 0.04;
 		local buttonHeight = 0.04;
-
+		
 		local ovWidth = AutoDrive.Hud.Background.width;
 		local ovHeight = AutoDrive.Hud.Background.height;
 		if vehicle.bEnteringMapMarker == true then
-			ovHeight = ovHeight + 0.1;
+			ovHeight = ovHeight + 0.08;
 		end;
+		
+		local buttonCounter = 0;
+		for _,button in pairs(AutoDrive.Hud.Buttons) do
+			if button.isVisible then
+				buttonCounter = buttonCounter + 1;
+			end;
+		end;
+		
+		AutoDrive.Hud.rowCurrent = math.ceil(buttonCounter / AutoDrive.Hud.cols);	
+		
+		ovHeight = ovHeight + (AutoDrive.Hud.rowCurrent-2) * 0.05;
+	
 
 		AutoDrive.Hud.Background.ov = Overlay:new(nil, AutoDrive.Hud.Background.img, AutoDrive.Hud.Background.posX, AutoDrive.Hud.Background.posY , ovWidth, ovHeight);
 		AutoDrive.Hud.Background.ov:render();
 		
 		
 		for _,button in pairs(AutoDrive.Hud.Buttons) do
-			button.ov:render();
+			if button.isVisible then
+				button.ov:render();
+			end;
 		end;
 		
 		
 		
+		
+		
 		if vehicle.sTargetSelected ~= nil then
+			
+		
 			local adFontSize = 0.014;
 			local adPosX = AutoDrive.Hud.posX + 0.005 + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
 			local adPosY = AutoDrive.Hud.posY + 0.005 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
 			setTextColor(1,1,1,1);
 			renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
 			renderText(AutoDrive.Hud.posX - 0.02 + AutoDrive.Hud.width, adPosY, adFontSize, "" .. vehicle.nSpeed);
-			--self.printMessage = nil;
+			
+			--[[
+			local img1 = Utils.getNoNil("img/createMapMarker.dds", "empty.dds" )
+			local state, result = pcall( Utils.getFilename, img1, AutoDrive.directory )
+			if not state then
+				print("ERROR: "..tostring(result).." (img1: "..tostring(img1)..")")
+				return
+			end
+			local target_ov = Overlay:new(nil, result, adPosX, adPosY , 0.01, 0.01* (g_screenWidth / g_screenHeight));
+			target_ov:render();
+			--]]
 		end;
 
 		if vehicle.bEnteringMapMarker == true then
 			local adFontSize = 0.014;
 			local adPosX = AutoDrive.Hud.posX + 0.005 + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
-			local adPosY = AutoDrive.Hud.posY + 0.005 + 0.005 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
+			local adPosY = AutoDrive.Hud.posY + 0.005 + 0.03 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
 			setTextColor(1,1,1,1);
-			renderText(adPosX, adPosY, adFontSize, g_i18n:getText("AD_new:marker") .. " " .. vehicle.sEnteredMapMarkerString
-
+			renderText(adPosX, adPosY + 0.03, adFontSize, g_i18n:getText("AD_new_marker_helptext"));
+			renderText(adPosX, adPosY, adFontSize, g_i18n:getText("AD_new_marker") .. " " .. vehicle.sEnteredMapMarkerString);
 		end;
-	end;
+
+		
+		end;
 	
 end;
 
@@ -2180,14 +2320,6 @@ function AutoDrive:removeMapWayPoint(del)
 				marker.id = marker.id -1;
 			end;
 		end;
-
-end;
-
-function AutoDrive:KeyCodeToString(code)
-
-	if code == then
-		return "a";
-	end;
 
 end;
 
