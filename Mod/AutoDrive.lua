@@ -1283,10 +1283,10 @@ function AutoDrive:translate(text)
 	if text == "Kuhstall" then
 		return g_i18n:getText("AD_Kuhstall");
 	end;
-	if text == "Scheinestall" then
+	if text == "Schweinestall" then
 		return g_i18n:getText("AD_Schweinestall");
 	end;
-	if text == "Schafweide" then
+	if text == "Schafsweide" then
 		return g_i18n:getText("AD_Schafweide");
 	end;
 	if text == "Tankstelle" then
@@ -2053,8 +2053,13 @@ function AutoDrive:drawHud(vehicle)
 		local buttonWidth = 0.04;
 		local buttonHeight = 0.04;
 
+		local ovWidth = AutoDrive.Hud.Background.width;
+		local ovHeight = AutoDrive.Hud.Background.height;
+		if vehicle.bEnteringMapMarker == true then
+			ovHeight = ovHeight + 0.1;
+		end;
 
-		AutoDrive.Hud.Background.ov = Overlay:new(nil, AutoDrive.Hud.Background.img, AutoDrive.Hud.Background.posX, AutoDrive.Hud.Background.posY , AutoDrive.Hud.Background.width, AutoDrive.Hud.Background.height);
+		AutoDrive.Hud.Background.ov = Overlay:new(nil, AutoDrive.Hud.Background.img, AutoDrive.Hud.Background.posX, AutoDrive.Hud.Background.posY , ovWidth, ovHeight);
 		AutoDrive.Hud.Background.ov:render();
 		
 		
@@ -2178,6 +2183,13 @@ function AutoDrive:removeMapWayPoint(del)
 
 end;
 
+function AutoDrive:KeyCodeToString(code)
+
+	if code == then
+		return "a";
+	end;
+
+end;
 
 function getFillType_new(fillType, implementTypeName)
 	local sFillType = g_i18n:getText("UNKNOWN"); 
