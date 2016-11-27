@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "0.7.1";
+AutoDrive.Version = "0.7.2";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -541,23 +541,7 @@ function AutoDrive:loadHud()
 	AutoDrive.Hud.Background.height = AutoDrive.Hud.height;
 	AutoDrive.Hud.Background.img = result;
 	
-	--[[
-	AutoDrive.Hud.buttonCounter = AutoDrive.Hud.buttonCounter + 1;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter] = {};
-	local buttonImg = Utils.getNoNil("img/off.dds", "empty.dds" )
-	state, result = pcall( Utils.getFilename, buttonImg, AutoDrive.directory )
-	if not state then
-		print("ERROR: "..tostring(result).." (buttinImg: "..tostring(buttinImg)..")")
-		return
-	end
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].ov = Overlay:new(nil, result, AutoDrive.Hud.posX + AutoDrive.Hud.borderX , AutoDrive.Hud.posY + AutoDrive.Hud.borderY, AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posX = AutoDrive.Hud.posX + AutoDrive.Hud.borderX;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posY = AutoDrive.Hud.posY + AutoDrive.Hud.borderY;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].width = AutoDrive.Hud.buttonWidth;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].height = AutoDrive.Hud.buttonHeight;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].name = "input_start_stop";
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img = result;
-	--]]
+
 	AutoDrive:AddButton("input_start_stop", "on.dds", "off.dds", false);
 	AutoDrive:AddButton("input_previousTarget", "previousTarget.dds", "button.dds", true);
 	AutoDrive:AddButton("input_nextTarget", "nextTarget.dds", "button.dds", true);
@@ -573,64 +557,7 @@ function AutoDrive:loadHud()
 	AutoDrive:AddButton("input_toggleConnection", "toggleConnection.dds", "hire_on.dds", true);
 	AutoDrive:AddButton("input_createMapMarker", "createMapMarker.dds", "hire_on.dds", true);
 	AutoDrive:AddButton("input_toggleHud", "close.dds", "empty.dds", true);
-	
-	
-	--[[
-	AutoDrive.Hud.buttonCounter = AutoDrive.Hud.buttonCounter + 1;	
-	AutoDrive.Hud.colCurrent = AutoDrive.Hud.buttonCounter % AutoDrive.Hud.cols;
-	AutoDrive.Hud.rowCurrent = math.floor(AutoDrive.Hud.buttonCounter / AutoDrive.Hud.cols) + 1;	
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter] = {};
-	buttonImg = Utils.getNoNil("img/no_pause.dds", "empty.dds" )
-	state, result = pcall( Utils.getFilename, buttonImg, AutoDrive.directory )
-	if not state then
-		print("ERROR: "..tostring(result).." (buttinImg: "..tostring(buttinImg)..")")
-		return
-	end
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posX = AutoDrive.Hud.posX + AutoDrive.Hud.colCurrent * AutoDrive.Hud.borderX + (AutoDrive.Hud.colCurrent - 1) * AutoDrive.Hud.buttonWidth;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posY = AutoDrive.Hud.posY + (AutoDrive.Hud.rowCurrent) * AutoDrive.Hud.borderY + (AutoDrive.Hud.rowCurrent-1) * AutoDrive.Hud.buttonHeight;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].width = AutoDrive.Hud.buttonWidth;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].height = AutoDrive.Hud.buttonHeight;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].name = "input_silomode";
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img = result;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].ov = Overlay:new(nil, result,AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posX ,AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
 
-	
-	AutoDrive.Hud.buttonCounter = AutoDrive.Hud.buttonCounter + 1;	
-	AutoDrive.Hud.colCurrent = AutoDrive.Hud.buttonCounter % AutoDrive.Hud.cols;
-	AutoDrive.Hud.rowCurrent = math.floor(AutoDrive.Hud.buttonCounter / AutoDrive.Hud.cols) + 1;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter] = {};
-	buttonImg = Utils.getNoNil("img/forward.dds", "empty.dds" )
-	state, result = pcall( Utils.getFilename, buttonImg, AutoDrive.directory )
-	if not state then
-		print("ERROR: "..tostring(result).." (buttinImg: "..tostring(buttinImg)..")")
-		return
-	end
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posX = AutoDrive.Hud.posX + AutoDrive.Hud.colCurrent * AutoDrive.Hud.borderX + (AutoDrive.Hud.colCurrent - 1) * AutoDrive.Hud.buttonWidth;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posY = AutoDrive.Hud.posY + (AutoDrive.Hud.rowCurrent) * AutoDrive.Hud.borderY + (AutoDrive.Hud.rowCurrent-1) * AutoDrive.Hud.buttonHeight;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].width = AutoDrive.Hud.buttonWidth;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].height = AutoDrive.Hud.buttonHeight;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].name = "input_nextTarget";
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img = result;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].ov = Overlay:new(nil, result,AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posX ,AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
-	
-	AutoDrive.Hud.buttonCounter = AutoDrive.Hud.buttonCounter + 1;	
-	AutoDrive.Hud.colCurrent = AutoDrive.Hud.buttonCounter % AutoDrive.Hud.cols;
-	AutoDrive.Hud.rowCurrent = math.floor(AutoDrive.Hud.buttonCounter / AutoDrive.Hud.cols) + 1;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter] = {};
-	buttonImg = Utils.getNoNil("img/backward.dds", "empty.dds" )
-	state, result = pcall( Utils.getFilename, buttonImg, AutoDrive.directory )
-	if not state then
-		print("ERROR: "..tostring(result).." (buttinImg: "..tostring(buttinImg)..")")
-		return
-	end
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posX = AutoDrive.Hud.posX + AutoDrive.Hud.colCurrent * AutoDrive.Hud.borderX + (AutoDrive.Hud.colCurrent - 1) * AutoDrive.Hud.buttonWidth;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posY = AutoDrive.Hud.posY + (AutoDrive.Hud.rowCurrent) * AutoDrive.Hud.borderY + (AutoDrive.Hud.rowCurrent-1) * AutoDrive.Hud.buttonHeight;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].width = AutoDrive.Hud.buttonWidth;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].height = AutoDrive.Hud.buttonHeight;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].name = "input_previousTarget";
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img = result;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].ov = Overlay:new(nil, result,AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posX ,AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
-	--]]
 end;
 
 function AutoDrive:AddButton(name, img, img2, on)
@@ -1013,11 +940,13 @@ function AutoDrive:InputHandling(vehicle, input)
 		if input == "input_createMapMarker" then 
 			if vehicle.bCreateMapMarker == false then
 				vehicle.bCreateMapMarker  = true;
+				vehicle.bEnteringMapMarker = true;
+				vehicle.sEnteredMapMarkerString = "";
 				--vehicle.printMessage = "Changing entry for highlighted markers";
 				--vehicle.nPrintTime = 10000;
 			else
 				vehicle.bCreateMapMarker  = false;
-				--vehicle.printMessage = "Not ready";
+				--vehicle.printMessagesEnteredMapMarkerString = ""; = "Not ready";
 				--vehicle.nPrintTime = 3000;
 			end;
 			
@@ -1267,6 +1196,8 @@ function AutoDrive:shortestPath(Graph,distance,pre,start,endNode)
 end;
 
 function init(self)
+
+
 	local aNameSearch = {"vehicle.name." .. g_languageShort, "vehicle.name.en", "vehicle.name", "vehicle.storeData.name", "vehicle#type"};
 	self.bDisplay = 1; 
 	if self.ad == nil then
@@ -1305,7 +1236,7 @@ function init(self)
 			sTargetSelected = translation;
 		end;	
 	end;
-	self.bTargetMode = false;
+	self.bTargetMode = true;
 	self.nSpeed = 40;
 	self.bCreateMapPoints = false;
 	self.bShowDebugMapMarker = false;
@@ -1315,9 +1246,12 @@ function init(self)
 	self.DebugPointsIterated = {};
 	self.bDeadLock = false;
 	self.nTimeToDeadLock = 10000;
+	self.bDeadLockRepairCounter = 4;
 	
 	self.bStopAD = false;
 	self.bCreateMapMarker = false;
+	self.bEnteringMapMarkerString = false;
+	self.sEnteredMapMarkerString = "";
 	
 	if Steerable.load ~= nil then 
 		local orgSteerableLoad = Steerable.load 
@@ -1568,6 +1502,7 @@ function AutoDrive:update(dt)
 	else
 		self.bDeadLock = false;
 		self.nTimeToDeadLock = 10000;
+		self.bDeadLockRepairCounter = 4;
 		--self.forceIsActive = false;
 		--self.stopMotorOnLeave = true;
 	end;
@@ -1742,15 +1677,20 @@ function AutoDrive:update(dt)
 		AutoDrive.nPrintTime = 10000;
 		
 		--deadlock handling
-		print("AD: Trying to recover from deadlock")
-		if self.ad.wayPoints[self.nCurrentWayPoint+2] ~= nil then
-			self.nCurrentWayPoint = self.nCurrentWayPoint + 1;
-			self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
-			self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
-			
-			self.bDeadLock = false;
-			self.nTimeToDeadLock = 10000;
-			
+		if self.bDeadLockRepairCounter < 1 then
+			AutoDrive.printMessage = g_i18n:getText("AD_Driver_of") .. " " .. self.name .. " " .. g_i18n:getText("AD_got_stuck");
+			AutoDrive.nPrintTime = 10000;
+		else
+			print("AD: Trying to recover from deadlock")
+			if self.ad.wayPoints[self.nCurrentWayPoint+2] ~= nil then
+				self.nCurrentWayPoint = self.nCurrentWayPoint + 1;
+				self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
+				self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
+
+				self.bDeadLock = false;
+				self.nTimeToDeadLock = 10000;
+				self.bDeadLockRepairCounter = self.bDeadLockRepairCounter - 1;
+			end;
 		end;
 		
 		
@@ -1808,17 +1748,6 @@ function AutoDrive:update(dt)
 						i = i+1;		
 					end;
 				end;
-				
-				--[[				
-				counter = 1;	
-				for n in pairs(self.ad.wayPoints) do
-				
-					AutoDrive:addlog("waypoint " .. counter .. " " .. self.ad.wayPoints[n].x .. "/" .. self.ad.wayPoints[n].y .. "/" .. self.ad.wayPoints[n].z);
-					counter = counter +1;
-				end;
-				AutoDrive:addlog("eol");
-				--]]
-				
 
 			end;
 		end;	
@@ -2013,10 +1942,10 @@ function AutoDrive:draw()
 					self.nPrintTime = 6000;
 				end;
 				
-				if self.bCreateMapMarker == true then
+				if self.bCreateMapMarker == true and self.bEnteringMapMarker == false then
 				
 					g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
-					g_currentMission.AutoDrive.mapMarker[g_currentMission.AutoDrive.mapMarkerCounter] = {id=closest, name= "Neuer Marker: "..closest};
+					g_currentMission.AutoDrive.mapMarker[g_currentMission.AutoDrive.mapMarkerCounter] = {id=closest, name= self.sEnteredMapMarkerString};
 					self.bCreateMapMarker = false;
 					self.printMessage = g_i18n:getText("AD_Debug_waypoint_created_1") .. closest .. g_i18n:getText("AD_Debug_waypoint_created_2");
 					self.nPrintTime = 30000;
@@ -2123,7 +2052,8 @@ function AutoDrive:drawHud(vehicle)
 		
 		local buttonWidth = 0.04;
 		local buttonHeight = 0.04;
-		
+
+
 		AutoDrive.Hud.Background.ov = Overlay:new(nil, AutoDrive.Hud.Background.img, AutoDrive.Hud.Background.posX, AutoDrive.Hud.Background.posY , AutoDrive.Hud.Background.width, AutoDrive.Hud.Background.height);
 		AutoDrive.Hud.Background.ov:render();
 		
@@ -2142,6 +2072,15 @@ function AutoDrive:drawHud(vehicle)
 			renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
 			renderText(AutoDrive.Hud.posX - 0.02 + AutoDrive.Hud.width, adPosY, adFontSize, "" .. vehicle.nSpeed);
 			--self.printMessage = nil;
+		end;
+
+		if vehicle.bEnteringMapMarker == true then
+			local adFontSize = 0.014;
+			local adPosX = AutoDrive.Hud.posX + 0.005 + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
+			local adPosY = AutoDrive.Hud.posY + 0.005 + 0.005 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
+			setTextColor(1,1,1,1);
+			renderText(adPosX, adPosY, adFontSize, g_i18n:getText("AD_new:marker") .. " " .. vehicle.sEnteredMapMarkerString
+
 		end;
 	end;
 	

@@ -121,9 +121,9 @@
 			<de>Schweinestall</de>
 		</text>
 		
-		<text name="AD_Schafweide">	
+		<text name="AD_Schafsweide">
 			<en>Sheeps</en> 
-			<de>Schafweide</de>
+			<de>Schafsweide</de>
 		</text>
 		
 		<text name="AD_Tankstelle">	
@@ -149,6 +149,11 @@
 		<text name="AD_got_stuck">	
 			<en>got stuck</en> 
 			<de>hat sich fest gefahren</de>
+		</text>
+
+		<text name="AD_new_marker">
+			<en>New Goal:</en>
+			<de>Neues Ziel:</de>
 		</text>
 		
 	</l10n>
