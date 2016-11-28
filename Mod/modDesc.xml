@@ -15,7 +15,7 @@
 ]]>
 	   </de>
 	</description>
-    <version>0.7.3</version>
+    <version>0.7.4</version>
 	<multiplayer supported="true"/>   
 	<iconFilename>store.dds</iconFilename>
     <extraSourceFiles>

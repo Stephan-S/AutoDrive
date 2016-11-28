@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "0.7.3";
+AutoDrive.Version = "0.7.4";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -65,8 +65,8 @@ function AutoDrive:loadMap(name)
 	end;
 	
 	self.loadedMap = g_currentMission.missionInfo.map.title;
-	self.loadedMap = string.gsub(self.loadedMap, " ", "_")
-	self.loadedMap = string.gsub(self.loadedMap, ".", "_")
+	self.loadedMap = string.gsub(self.loadedMap, " ", "_");
+	self.loadedMap = string.gsub(self.loadedMap, "%.", "_");
 	g_currentMission.autoLoadedMap = self.loadedMap;
 	
 	print("map " .. self.loadedMap .. " was loaded");
