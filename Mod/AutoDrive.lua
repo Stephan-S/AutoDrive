@@ -66,6 +66,7 @@ function AutoDrive:loadMap(name)
 	
 	self.loadedMap = g_currentMission.missionInfo.map.title;
 	self.loadedMap = string.gsub(self.loadedMap, " ", "_")
+	self.loadedMap = string.gsub(self.loadedMap, ".", "_")
 	g_currentMission.autoLoadedMap = self.loadedMap;
 	
 	print("map " .. self.loadedMap .. " was loaded");
@@ -222,10 +223,30 @@ function AutoDrive:load(xmlFile)
 			local VersionCheck = getXMLString(adXml, "AutoDrive.version");
 			local MapCheck = hasXMLProperty(adXml, "AutoDrive." .. g_currentMission.autoLoadedMap );
 			if VersionCheck == nil or VersionCheck ~= AutoDrive.Version or MapCheck == false then
+				print("AD: Version Check or Map check failed - Loading init config");
+				--[[
+				print("AD: Saving your config as backup_config");
+
+				infile = io.open(file, "r")
+				instr = infile:read("*a")
+				infile:close()
+
+				if path ~= nil then
+					file = path .."/AutoDrive_config.xml";
+				else
+					file = getUserProfileAppPath() .. "savegame" .. g_currentMission.missionInfo.savegameIndex  .. "/AutoDrive_backup_config.xml";
+				end;
+
+				outfile = io.open(file, "w")
+				outfile:write(instr)
+				outfile:close()
+				--]]
+
+
 				path = getUserProfileAppPath();
 				file = path .. "/mods/AutoDrive/AutoDrive_init_config.xml";
 				
-				print("AD: Version Check or Map check failed - Loading init config");
+
 				tempXml = loadXMLFile("AutoDrive_XML_temp", file);--, "AutoDrive");
 				local MapCheckInit= hasXMLProperty(tempXml, "AutoDrive." .. g_currentMission.autoLoadedMap );
 				if MapCheckInit == false then
@@ -487,6 +508,21 @@ function AutoDrive:load(xmlFile)
 			
 		end;	
 		AutoDrive:loadHud();
+	end;
+
+
+	AutoDrive.Triggers = {};
+	AutoDrive.Triggers.tipTriggers = {};
+
+	for _,trigger in pairs(g_currentMission.tipTriggers) do
+
+		local triggerLocation = {};
+		local x,y,z = getWorldTranslation(trigger.rootNode);
+		triggerLocation.x = x;
+		triggerLocation.y = y;
+		triggerLocation.z = z;
+		--print("trigger: " .. trigger.stationName .. " pos: " .. x .. "/" .. y .. "/" .. z);
+
 	end;
 	
 end;
@@ -1348,7 +1384,7 @@ function AutoDrive:translate(text)
 		return g_i18n:getText("AD_Schweinestall");
 	end;
 	if text == "Schafsweide" then
-		return g_i18n:getText("AD_Schafweide");
+		return g_i18n:getText("AD_Schafsweide");
 	end;
 	if text == "Tankstelle" then
 		return g_i18n:getText("AD_Tankstelle");
@@ -1816,6 +1852,48 @@ function AutoDrive:update(dt)
 			end;
 		end;	
 	end;
+
+	--[[trigger test
+
+	--get trailer:
+	local trailer = nil;
+	if self.attachedImplements ~= nil then
+		for _, implement in pairs(self.attachedImplements) do
+			if implement.object ~= nil then
+				if implement.object.getCapacity ~= nil then
+					if implement.object.readCapacity ~= true then
+						--print("capacity = " .. implement.object:getCapacity());
+						implement.object.readCapacity = true;
+					end;
+
+					trailer = implement.object;
+				else
+					if implement.object.addebug ~= true then
+						--print("implement has no capacity");
+						implement.object.addebug = true;
+					end;
+				end;
+			end;
+		end;
+
+		--check trailer trigger: trailerTipTriggers
+		if trailer ~= nil then
+
+			if g_currentMission.trailerInTipRange ~= nil then
+					--print("Found trigger: ");
+					--activate trigger:
+					if g_currentMission.trailerInTipRange.tipping ~= true then
+						print("toggling tp state");
+						g_currentMission.trailerInTipRange:toggleTipState(g_currentMission.currentTipTrigger, g_currentMission.currentTipReferencePointIndex);
+						--trailer:toggleTipState(trailer.trailerTipTriggers[1],trailer.tipReferencePoints[trailer.preferedTipReferencePointIndex]);
+						g_currentMission.trailerInTipRange.tipping = true;
+					end;
+			end;
+		end;
+
+	end;
+	--]]
+	--triger test end
 	
 	if self.isServer == true then
 		AutoDriveInputEvent:sendEvent(self);
