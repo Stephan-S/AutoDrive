@@ -677,7 +677,7 @@ function AutoDrive:InputHandling(vehicle, input)
 		--if vehicle == g_currentMission.controlledVehicle then
 			--print("Executing InputHandling with input: " .. input);
 			--print("correct vehicle");
-			if input == "input_silomode" then
+			if input == "input_silomode" and g_dedicatedServerInfo == nil and g_server ~= nil then
 
 				--print("executing input_silomode");
 				if vehicle.bReverseTrack == false then
@@ -731,7 +731,7 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			end;
 
-			if input == "input_record" then
+			if input == "input_record" and g_server ~= nil and g_dedicatedServerInfo == nil then
 				if vehicle.bcreateMode == false then
 					vehicle.bcreateMode = true;
 					vehicle.nCurrentWayPoint = 0;
@@ -900,7 +900,7 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			end;
 
-			if input == "input_showClosest"  then
+			if input == "input_showClosest" and g_server ~= nil and g_dedicatedServerInfo == nil then
 				if vehicle.bShowDebugMapMarker == false then
 					vehicle.bShowDebugMapMarker = true;
 					--vehicle.printMessage = g_i18n:getText("AD_Debug_show_closest")
@@ -925,7 +925,7 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			end;
 
-			if input == "input_showNeighbor" then
+			if input == "input_showNeighbor" and g_server ~= nil and g_dedicatedServerInfo == nil then
 				if vehicle.bShowSelectedDebugPoint == false then
 					vehicle.bShowSelectedDebugPoint = true;
 
@@ -962,7 +962,7 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			end;
 
-			if input == "input_toggleConnection" then
+			if input == "input_toggleConnection" and g_server ~= nil and g_dedicatedServerInfo == nil then
 				if vehicle.bChangeSelectedDebugPoint == false then
 					vehicle.bChangeSelectedDebugPoint = true;
 					--vehicle.printMessage = g_i18n:getText("AD_Debug_change_connection");
@@ -988,7 +988,7 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			end;
 
-			if input == "input_createMapMarker" then
+			if input == "input_createMapMarker" and g_server ~= nil and g_dedicatedServerInfo == nil then
 				if vehicle.bShowDebugMapMarker == true then
 					if vehicle.bCreateMapMarker == false then
 						vehicle.bCreateMapMarker  = true;
@@ -1065,7 +1065,7 @@ function AutoDrive:InputHandling(vehicle, input)
 				end;
 			end;
 
-			if input == "input_removeWaypoint" then
+			if input == "input_removeWaypoint" and g_server ~= nil and g_dedicatedServerInfo == nil then
 
 				if vehicle.bShowDebugMapMarker == true then
 					local closest = AutoDrive:findClosestWayPoint(vehicle)
@@ -1075,7 +1075,7 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			end;
 
-			if input == "input_recalculate" then
+			if input == "input_recalculate" and g_server ~= nil and g_dedicatedServerInfo == nil then
 				for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
 						point.marker = {};
 					end;
