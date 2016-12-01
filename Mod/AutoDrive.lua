@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "0.8";
+AutoDrive.Version = "0.8.1";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -218,6 +218,7 @@ function AutoDrive:load(xmlFile)
 		
 		if fileExists(file) then
 			print("AD: Loading xml file from " .. file);
+			g_currentMission.AutoDrive.xmlSaveFile = file;
 			adXml = loadXMLFile("AutoDrive_XML", file);--, "AutoDrive");
 			
 			local VersionCheck = getXMLString(adXml, "AutoDrive.version");
@@ -286,6 +287,7 @@ function AutoDrive:load(xmlFile)
 			adXml = createXMLFile("AutoDrive_XML", file, "AutoDrive");
 						
 			saveXMLFile(adXml);
+			g_currentMission.AutoDrive.xmlSaveFile = file;
 		end;
 			
 		
@@ -2975,3 +2977,44 @@ function AutoDriveMapEvent:sendEvent(vehicle)
 	end;
 end;
 
+--StoreBackup%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+--StoreBackup%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+--StoreBackup%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+function AutoDrive.backupADFiles(self)
+	if g_server == nil and g_dedicatedServerInfo == nil then return end;
+
+	if not fileExists(g_currentMission.AutoDrive.xmlSaveFile) then
+		-- ERROR: CP FILE DOESN'T EXIST
+		return;
+	end;
+
+	local savegameIndex = g_currentMission.missionInfo.savegameIndex;
+	AutoDrive.adTempSaveFolderPath = getUserProfileAppPath() .. 'autoDriveBackupSavegame' .. savegameIndex;
+	createFolder(AutoDrive.adTempSaveFolderPath);
+
+	AutoDrive.adFileBackupPath = AutoDrive.adTempSaveFolderPath .. '/AutoDrive_config.xml';
+	copyFile(g_currentMission.AutoDrive.xmlSaveFile, AutoDrive.adFileBackupPath, true);
+
+end;
+g_careerScreen.saveSavegame = Utils.prependedFunction(g_careerScreen.saveSavegame, AutoDrive.backupADFiles);
+
+function AutoDrive.restoreBackup(self)
+	if g_server == nil and g_dedicatedServerInfo == nil then return end;
+
+	if not AutoDrive.adFileBackupPath then return end;
+
+	local savegameIndex = g_currentMission.missionInfo.savegameIndex;
+	local savegameFolderPath = getUserProfileAppPath() .. "savegame" .. g_currentMission.missionInfo.savegameIndex;
+
+
+	if fileExists(savegameFolderPath .. '/careerSavegame.xml') then -- savegame isn't corrupted and has been saved correctly
+
+		-- copy backed up files back to our savegame directory
+		copyFile(AutoDrive.adFileBackupPath, g_currentMission.AutoDrive.xmlSaveFile, true);
+		AutoDrive.adFileBackupPath = nil;
+
+	end;
+end;
+g_careerScreen.saveSavegame = Utils.appendedFunction(g_careerScreen.saveSavegame, AutoDrive.restoreBackup);
