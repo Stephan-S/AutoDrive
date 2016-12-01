@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "0.8.1";
+AutoDrive.Version = "0.8.3";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -1704,7 +1704,15 @@ function AutoDrive:update(dt)
 						AutoDrive:deactivate(self,true);
 					end;
 				else
-					if getDistance(x,z, self.nTargetX, self.nTargetZ) < 1.4 then
+					local min_distance = 1.4;
+					if self.typeDesc == "combine" then
+						min_distance = 6;
+					end;
+					if self.typeDesc == "telehandler" then
+						min_distance = 3;
+					end;
+
+					if getDistance(x,z, self.nTargetX, self.nTargetZ) < min_distance then
 						
 						self.nTimeToDeadLock = 10000;
 						
@@ -1796,12 +1804,58 @@ function AutoDrive:update(dt)
 								if angle >= 5 and angle < 8 then speed_override = 30; end;
 								if angle >= 8 and angle < 12 then speed_override = 25; end;
 								if angle >= 12 and angle < 15 then speed_override = 15; end;
-								if angle >= 15 and angle < 50 then speed_override = 5; end;
+								if angle >= 15 and angle < 20 then speed_override = 14; end;
+								if angle >= 20 and angle < 30 then speed_override = 9; end;
+								if angle >= 30 and angle < 90 then speed_override = 4; end;
 
 								--print("Angle: " .. angle .. " speed: " .. speed_override);
 
 							end;
 							if speed_override == -1 then speed_override = self.nSpeed; end;
+
+							local wp_new = nil;
+							--[[
+							if self.typeDesc == "combine" or self.typeDesc == "telehandler" then
+
+								if self.ad.wayPoints[self.nCurrentWayPoint-1] ~= nil then
+									wp_ref = self.ad.wayPoints[self.nCurrentWayPoint-1];
+									wp = self.ad.wayPoints[self.nCurrentWayPoint];
+									wp_new = {};
+									local ratio_x = (wp.x - wp_ref.x) / ( (wp.x - wp_ref.x) + (wp.z - wp_ref.z));
+									local ratio_y = (wp.z - wp_ref.z) / ( (wp.x - wp_ref.x) + (wp.z - wp_ref.z));
+
+									wp_new.x = wp.x + ratio_x * 5;
+									wp_new.z = wp.z + ratio_y * 5;
+
+									if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
+										wp_new.x = self.ad.wayPoints[self.nCurrentWayPoint+1].x;
+										wp_new.z = self.ad.wayPoints[self.nCurrentWayPoint+1].z;
+									end;
+
+									if self.ad.wayPoints[self.nCurrentWayPoint+2] ~= nil then
+
+										local wp_ahead = self.ad.wayPoints[self.nCurrentWayPoint+2];
+										local wp_current = self.ad.wayPoints[self.nCurrentWayPoint+1];
+										local wp_ref = self.ad.wayPoints[self.nCurrentWayPoint];
+										local angle = AutoDrive:angleBetween( 	{x=	wp_ahead.x	-	wp_ref.x, z = wp_ahead.z - wp_ref.z },
+											{x=	wp_current.x-	wp_ref.x, z = wp_current.z - wp_ref.z } )
+
+										if angle >= 8 then
+											wp_new.x = self.ad.wayPoints[self.nCurrentWayPoint+2].x;
+											wp_new.z = self.ad.wayPoints[self.nCurrentWayPoint+2].z;
+										end;
+									end;
+
+									drawDebugLine(self.ad.wayPoints[self.nCurrentWayPoint-1].x, self.ad.wayPoints[self.nCurrentWayPoint-1].y+4, self.ad.wayPoints[self.nCurrentWayPoint-1].z, 1,0,0, wp_new.x, self.ad.wayPoints[self.nCurrentWayPoint].y+4, wp_new.z, 1,0,0);
+
+									--print("Correcting wp for combine - old wp: " .. wp.x .. "/" .. wp.z .. " new: " .. wp_new.x .. "/" .. wp_new.z .. "wp_ref: ".. wp_ref.x .. "/" .. wp_ref.z);
+
+								end;
+							end;
+							--]]
+							if wp_new ~= nil then
+								xl,yl,zl = worldToLocal(veh.components[1].node, wp_new.x,y,wp_new.z);
+							end;
 
 							AIVehicleUtil.driveToPoint(self, dt, 1, true, self.bDrivingForward, xl, zl, speed_override, false );
 						else
@@ -1812,8 +1866,11 @@ function AutoDrive:update(dt)
 					end;
 				end;
 			end;
-		
-		veh.aiSteeringSpeed = 0.4;
+		if self.typeDesc == "combine" then
+			veh.aiSteeringSpeed = 1;
+		else
+			veh.aiSteeringSpeed = 0.4;
+		end;
 		--print(" target: " .. self.nTargetX .. "/" .. self.nTargetZ .. " steeringSpeed: " .. veh.aiSteeringSpeed);
 	end;
 	
@@ -2171,7 +2228,7 @@ function AutoDrive:draw()
 
 						if point.out ~= nil then
 							for i2,neighbor in pairs(point.out) do
-								drawDebugLine(point.x, point.y+4, point.z, 0,1,1, g_currentMission.AutoDrive.mapWayPoints[neighbor].x, g_currentMission.AutoDrive.mapWayPoints[neighbor].y+4, g_currentMission.AutoDrive.mapWayPoints[neighbor].z, 1,1,1);
+								drawDebugLine(point.x, point.y+4, point.z, 0,1,0, g_currentMission.AutoDrive.mapWayPoints[neighbor].x, g_currentMission.AutoDrive.mapWayPoints[neighbor].y+4, g_currentMission.AutoDrive.mapWayPoints[neighbor].z, 1,1,1);
 							end;
 						end;
 
@@ -2181,7 +2238,7 @@ function AutoDrive:draw()
 				if self.bShowDebugMapMarker == true then
 					local closest = AutoDrive:findClosestWayPoint(self);
 					local x1,y1,z1 = getWorldTranslation(self.components[1].node);
-					drawDebugLine(x1, y1, z1, 1,1,1, g_currentMission.AutoDrive.mapWayPoints[closest].x, g_currentMission.AutoDrive.mapWayPoints[closest].y+4, g_currentMission.AutoDrive.mapWayPoints[closest].z, 1,1,1);
+					drawDebugLine(x1, y1, z1, 0,0,1, g_currentMission.AutoDrive.mapWayPoints[closest].x, g_currentMission.AutoDrive.mapWayPoints[closest].y+4, g_currentMission.AutoDrive.mapWayPoints[closest].z, 0,0,1);
 
 					if self.printMessage == nil or string.find(self.printMessage, g_i18n:getText("AD_Debug_closest")) ~= nil then
 						self.printMessage = g_i18n:getText("AD_Debug_closest") .. closest;
