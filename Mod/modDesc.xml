@@ -23,7 +23,8 @@
     </extraSourceFiles>
 	<l10n>
 		<text name="UNKNOWN">	           			<en>Unknown</en>         				<de>Unbekannt</de>		        			</text>
-		<text name="input_ADToggleHud"> 			<en>AD: Toggle HUD</en> 				<de>AD: HUD ein/ausblenden</de>				</text>	
+		<text name="input_ADToggleHud"> 			<en>AD: Toggle HUD</en> 				<de>AD: HUD ein/ausblenden</de>				</text>
+		<text name="input_ADToggleMouse"> 			<en>AD: Toggle Mouse</en> 				<de>AD: Maus ein/ausblenden</de>			</text>
 		<text name="input_ADEnDisable"> 			<en>AD: En/Disable</en> 				<de>AD: Ein/Ausschalten</de>				</text>		
 		<text name="input_ADSilomode">  			<en>AD: Silomode</en>  					<de>AD: Silomodus</de>						</text>		
 		<text name="input_ADRoundtrip"> 			<en>AD: Roundtrip</en>  				<de>AD: Rundkurs</de>						</text>		
@@ -165,7 +166,8 @@
 	</l10n>
 	
 	<inputBindings>			
-		<input name="ADToggleHud" 				category="VEHICLE" key1="KEY_lalt KEY_KP_0"   			key2="" button="" device="0" mouse="" /> 
+		<input name="ADToggleHud" 				category="VEHICLE" key1="KEY_lalt KEY_KP_0"   			key2="" button="" device="0" mouse="" />
+		<input name="ADToggleMouse" 			category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="MOUSE_BUTTON_RIGHT" />
 		<input name="ADRecord" 					category="VEHICLE" key1="KEY_lctrl KEY_left"   			key2="" button="" device="0" mouse="" />   		
 		<input name="ADRoundtrip" 				category="VEHICLE" key1=""						   		key2="" button="" device="0" mouse="" />   		
 		<input name="ADSilomode" 				category="VEHICLE" key1="KEY_lctrl KEY_up"   			key2="" button="" device="0" mouse="" />   

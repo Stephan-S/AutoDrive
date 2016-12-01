@@ -1050,7 +1050,6 @@ function AutoDrive:InputHandling(vehicle, input)
 			end;
 
 			if input == "input_toggleHud" then
-				--print("executing input_silomode");
 				if AutoDrive.Hud.showHud == false then
 					AutoDrive.Hud.showHud = true;
 				else
@@ -1066,6 +1065,20 @@ function AutoDrive:InputHandling(vehicle, input)
 					end;
 				end;
 			end;
+
+		if input == "input_toggleMouse" then
+			if AutoDrive.Hud.showHud == true then
+				if g_currentMission.AutoDrive.showMouse == false then
+					--g_mouseControlsHelp.active = false
+					g_currentMission.AutoDrive.showMouse = true;
+					InputBinding.setShowMouseCursor(true);
+				else
+					--g_mouseControlsHelp.active = true
+					InputBinding.setShowMouseCursor(false);
+					g_currentMission.AutoDrive.showMouse = false;
+				end;
+			end;
+		end;
 
 			if input == "input_removeWaypoint" and g_server ~= nil and g_dedicatedServerInfo == nil then
 
@@ -1424,18 +1437,7 @@ end;
 
 function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
 	if self == g_currentMission.controlledVehicle and AutoDrive.Hud.showHud == true then
-		if isDown and button == 3 then
-			--print("Mouseevent occured on posX " .. posX .. " posY " ..posY .. "button" .. button);
-			if g_currentMission.AutoDrive.showMouse == false then
-				--g_mouseControlsHelp.active = false
-				g_currentMission.AutoDrive.showMouse = true;
-				InputBinding.setShowMouseCursor(true);	
-			else
-				--g_mouseControlsHelp.active = true
-				InputBinding.setShowMouseCursor(false);	
-				g_currentMission.AutoDrive.showMouse = false;	
-			end;
-		end;
+
 		
 		if g_currentMission.AutoDrive.showMouse and button == 1 and isDown then
 			
@@ -1583,6 +1585,10 @@ function AutoDrive:update(dt)
 		if InputBinding.hasEvent(InputBinding.ADToggleHud) then 
 			AutoDrive:InputHandling(self, "input_toggleHud");
 			
+		end;
+		if InputBinding.hasEvent(InputBinding.ADToggleMouse) then
+			AutoDrive:InputHandling(self, "input_toggleMouse");
+
 		end;
 		if InputBinding.hasEvent(InputBinding.ADDebugDeleteWayPoint) then 
 			AutoDrive:InputHandling(self, "input_removeWaypoint");
@@ -1775,7 +1781,29 @@ function AutoDrive:update(dt)
 						if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
 							--AutoDrive:addlog("Issuing Drive Request");
 							xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
-							AIVehicleUtil.driveToPoint(self, dt, 1, true, self.bDrivingForward, xl, zl, self.nSpeed, false );
+
+							local speed_override = -1;
+							if self.ad.wayPoints[self.nCurrentWayPoint-1] ~= nil and self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
+								local wp_ahead = self.ad.wayPoints[self.nCurrentWayPoint+1];
+								local wp_current = self.ad.wayPoints[self.nCurrentWayPoint];
+								local wp_ref = self.ad.wayPoints[self.nCurrentWayPoint-1];
+								local angle = AutoDrive:angleBetween( 	{x=	wp_ahead.x	-	wp_ref.x, z = wp_ahead.z - wp_ref.z },
+																		{x=	wp_current.x-	wp_ref.x, z = wp_current.z - wp_ref.z } )
+
+
+								if angle < 3 then speed_override = -1; end;
+								if angle >= 3 and angle < 5 then speed_override = 35; end;
+								if angle >= 5 and angle < 8 then speed_override = 30; end;
+								if angle >= 8 and angle < 12 then speed_override = 25; end;
+								if angle >= 12 and angle < 15 then speed_override = 15; end;
+								if angle >= 15 and angle < 50 then speed_override = 5; end;
+
+								--print("Angle: " .. angle .. " speed: " .. speed_override);
+
+							end;
+							if speed_override == -1 then speed_override = self.nSpeed; end;
+
+							AIVehicleUtil.driveToPoint(self, dt, 1, true, self.bDrivingForward, xl, zl, speed_override, false );
 						else
 							--print("Reaching last waypoint - slowing down");
 							xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
@@ -1843,26 +1871,61 @@ function AutoDrive:update(dt)
 					
 					i = i+1;
 				else
-					local x,y,z = getWorldTranslation(veh.components[1].node);
-					local wp = self.ad.wayPoints[i-1];
-					if getDistance(x,z,wp.x,wp.z) > 4 then
-						self.ad.wayPoints[i] = createVector(x,y,z);
-						if self.bCreateMapPoints == true then
-							g_currentMission.AutoDrive.mapWayPointsCounter = g_currentMission.AutoDrive.mapWayPointsCounter + 1;
-							--edit previous point
-							g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out[1] = g_currentMission.AutoDrive.mapWayPointsCounter;
-							g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out_cost[1] = 1;
-							--edit current point
-							--print("Creating Waypoint #" .. g_currentMission.AutoDrive.mapWayPointsCounter);
-							g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter] = createNode(g_currentMission.AutoDrive.mapWayPointsCounter,{},{},{},{});						
-							g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].incoming[1] = g_currentMission.AutoDrive.mapWayPointsCounter-1;
-							g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].x = x;
-							g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].y = y;
-							g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].z = z;
+					if i == 2 then
+						local x,y,z = getWorldTranslation(veh.components[1].node);
+						local wp = self.ad.wayPoints[i-1];
+						if getDistance(x,z,wp.x,wp.z) > 3 then
+							self.ad.wayPoints[i] = createVector(x,y,z);
+							if self.bCreateMapPoints == true then
+								g_currentMission.AutoDrive.mapWayPointsCounter = g_currentMission.AutoDrive.mapWayPointsCounter + 1;
+								--edit previous point
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out[1] = g_currentMission.AutoDrive.mapWayPointsCounter;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out_cost[1] = 1;
+								--edit current point
+								--print("Creating Waypoint #" .. g_currentMission.AutoDrive.mapWayPointsCounter);
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter] = createNode(g_currentMission.AutoDrive.mapWayPointsCounter,{},{},{},{});
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].incoming[1] = g_currentMission.AutoDrive.mapWayPointsCounter-1;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].x = x;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].y = y;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].z = z;
+							end;
+
+							i = i+1;
 						end;
-						
-						i = i+1;		
+					else
+						local x,y,z = getWorldTranslation(veh.components[1].node);
+						local wp = self.ad.wayPoints[i-1];
+						local wp_ref = self.ad.wayPoints[i-2]
+						local angle = AutoDrive:angleBetween( {x=x-wp_ref.x,z=z-wp_ref.z},{x=wp.x-wp_ref.x, z = wp.z - wp_ref.z } )
+						--print("Angle between: " .. angle );
+						local max_distance = 6;
+						if angle < 3 then max_distance = 20; end;
+						if angle >= 3 and angle < 5 then max_distance = 6; end;
+						if angle >= 5 and angle < 8 then max_distance = 4; end;
+						if angle >= 8 and angle < 12 then max_distance = 2; end;
+						if angle >= 12 and angle < 15 then max_distance = 1; end;
+						if angle >= 15 and angle < 50 then max_distance = 0.5; end;
+
+						if getDistance(x,z,wp.x,wp.z) > max_distance then
+							self.ad.wayPoints[i] = createVector(x,y,z);
+							if self.bCreateMapPoints == true then
+								g_currentMission.AutoDrive.mapWayPointsCounter = g_currentMission.AutoDrive.mapWayPointsCounter + 1;
+								--edit previous point
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out[1] = g_currentMission.AutoDrive.mapWayPointsCounter;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out_cost[1] = 1;
+								--edit current point
+								--print("Creating Waypoint #" .. g_currentMission.AutoDrive.mapWayPointsCounter);
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter] = createNode(g_currentMission.AutoDrive.mapWayPointsCounter,{},{},{},{});
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].incoming[1] = g_currentMission.AutoDrive.mapWayPointsCounter-1;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].x = x;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].y = y;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].z = z;
+							end;
+
+							i = i+1;
+						end;
 					end;
+
 				end;
 
 			end;
@@ -2458,6 +2521,15 @@ end;
 function getPercentage(capacity, level) 
 	return level / capacity * 100; 
 end;
+
+function AutoDrive:angleBetween(vec1, vec2)
+
+	local scalarproduct_top = vec1.x * vec2.x + vec1.z * vec2.z;
+	local scalarproduct_down = math.sqrt(vec1.x * vec1.x + vec1.z*vec1.z) * math.sqrt(vec2.x * vec2.x + vec2.z*vec2.z)
+	local scalarproduct = scalarproduct_top / scalarproduct_down;
+
+	return math.deg(math.acos(scalarproduct));
+end
  
 addModEventListener(AutoDrive);
 
