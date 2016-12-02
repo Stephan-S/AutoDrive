@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "0.8.4";
+AutoDrive.Version = "0.8.5";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -680,8 +680,8 @@ function AutoDrive:InputHandling(vehicle, input)
 			--print("Executing InputHandling with input: " .. input);
 			--print("correct vehicle");
 			if input == "input_silomode" and g_dedicatedServerInfo == nil and g_server ~= nil then
-
-				--DebugUtil.printTableRecursively(vehicle, "	:	",0,4);
+				--DebugUtil.printTableRecursively(g_currentMission, "	:	",0,2);
+				--DebugUtil.printTableRecursively(g_currentMission.trafficSystem, "	:	",0,2);
 				--local rotx,roty,rotz = localDirectionToWorld(vehicle.components[1].node, 0, 0, 1);
 				--print("get rotation: " .. rotx .. "/" .. roty .. "/" .. rotz);
 				--local x,y,z = getWorldTranslation( self.components[1].node );
@@ -2615,60 +2615,69 @@ function AutoDrive:detectTraffic(vehicle, wp_next)
 
 	for _,other in pairs(g_currentMission.vehicles) do
 		if other ~= vehicle then
-			if other.sizeWidth == nil then
-				--print("vehicle " .. other.configFileName .. " has no width");
-			else
-				if other.sizeLength == nil then
-					print("vehicle " .. other.configFileName .. " has no length");
+			local isAttachedToMe = false;
+
+			for _i,impl in pairs(vehicle.attachedImplements) do
+				if impl.object ~= nil then
+					if impl.object == other then isAttachedToMe = true; end;
+				end;
+			end;
+			if isAttachedToMe == false then
+				if other.sizeWidth == nil then
+					--print("vehicle " .. other.configFileName .. " has no width");
 				else
-					if other.rootNode == nil then
-						print("vehicle " .. other.configFileName .. " has no root node");
+					if other.sizeLength == nil then
+						print("vehicle " .. other.configFileName .. " has no length");
 					else
+						if other.rootNode == nil then
+							print("vehicle " .. other.configFileName .. " has no root node");
+						else
 
-						local otherWidth = other.sizeWidth;
-						local otherLength = other.sizeLength;
-						local otherPos = {};
-						otherPos.x,otherPos.y,otherPos.z = getWorldTranslation( other.components[1].node );
+							local otherWidth = other.sizeWidth;
+							local otherLength = other.sizeLength;
+							local otherPos = {};
+							otherPos.x,otherPos.y,otherPos.z = getWorldTranslation( other.components[1].node );
 
-						local rx,ry,rz = localDirectionToWorld(other.components[1].node, 0, 0, 1);
+							local rx,ry,rz = localDirectionToWorld(other.components[1].node, 0, 0, 1);
 
-						local otherVectorToWp = {};
-						otherVectorToWp.x = rx --math.sin(rx);
-						otherVectorToWp.z = rz --math.cos(rx);
+							local otherVectorToWp = {};
+							otherVectorToWp.x = rx --math.sin(rx);
+							otherVectorToWp.z = rz --math.cos(rx);
 
-						local otherPos2 = {};
-						otherPos2.x = otherPos.x + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
-						otherPos2.y = y;
-						otherPos2.z = otherPos.z + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
-						--otherPos2.x,otherPos2.y,otherPos2.z = getWorldTranslation( other.components[2].node );
-						--local otherVectorToWp = { x = otherPos2.x - otherPos.x, z = otherPos2.z - otherPos.z};
-						local otherOrtho = { x=-otherVectorToWp.z, z=otherVectorToWp.x };
+							local otherPos2 = {};
+							otherPos2.x = otherPos.x + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
+							otherPos2.y = y;
+							otherPos2.z = otherPos.z + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
+							--otherPos2.x,otherPos2.y,otherPos2.z = getWorldTranslation( other.components[2].node );
+							--local otherVectorToWp = { x = otherPos2.x - otherPos.x, z = otherPos2.z - otherPos.z};
+							local otherOrtho = { x=-otherVectorToWp.z, z=otherVectorToWp.x };
 
-						local otherBoundingBox = {};
-						otherBoundingBox[1] ={ 	x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
-												z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+							local otherBoundingBox = {};
+							otherBoundingBox[1] ={ 	x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+													z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
 
-						otherBoundingBox[2] ={ 	x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
-												z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
-						otherBoundingBox[3] ={ 	x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
-												z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+							otherBoundingBox[2] ={ 	x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+													z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+							otherBoundingBox[3] ={ 	x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+													z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
 
-						otherBoundingBox[4] ={ 	x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
-												z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+							otherBoundingBox[4] ={ 	x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+													z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
 
-						--[[
-						drawDebugLine(otherPos.x,y+4,otherPos.z, 1,0,0, otherPos2.x,y+4,otherPos2.z, 1,0,0);
-						drawDebugLine(otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1, otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1);
-						drawDebugLine(otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1, otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1);
-						drawDebugLine(otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1, otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1);
-						drawDebugLine(otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1, otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1);
-						--]]
+							--[[
+							drawDebugLine(otherPos.x,y+4,otherPos.z, 1,0,0, otherPos2.x,y+4,otherPos2.z, 1,0,0);
+							drawDebugLine(otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1, otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1);
+							drawDebugLine(otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1, otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1);
+							drawDebugLine(otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1, otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1);
+							drawDebugLine(otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1, otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1);
+							--]]
 
-						if AutoDrive:BoxesIntersect(boundingBox, otherBoundingBox) == true then
-							--print("vehicle " .. other.configFileName .. " has collided with " .. vehicle.configFileName);
-							return true;
+							if AutoDrive:BoxesIntersect(boundingBox, otherBoundingBox) == true then
+								--print("vehicle " .. other.configFileName .. " has collided with " .. vehicle.configFileName);
+								return true;
+							end;
+
 						end;
-
 					end;
 				end;
 			end;
