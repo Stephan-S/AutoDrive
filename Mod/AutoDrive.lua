@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "0.8.3";
+AutoDrive.Version = "0.8.4";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -223,7 +223,7 @@ function AutoDrive:load(xmlFile)
 			
 			local VersionCheck = getXMLString(adXml, "AutoDrive.version");
 			local MapCheck = hasXMLProperty(adXml, "AutoDrive." .. g_currentMission.autoLoadedMap );
-			if VersionCheck == nil or VersionCheck ~= AutoDrive.Version or MapCheck == false then
+			if VersionCheck == nil or MapCheck == false then --or VersionCheck ~= AutoDrive.Version
 				print("AD: Version Check or Map check failed - Loading init config");
 				--[[
 				print("AD: Saving your config as backup_config");
@@ -680,6 +680,12 @@ function AutoDrive:InputHandling(vehicle, input)
 			--print("Executing InputHandling with input: " .. input);
 			--print("correct vehicle");
 			if input == "input_silomode" and g_dedicatedServerInfo == nil and g_server ~= nil then
+
+				--DebugUtil.printTableRecursively(vehicle, "	:	",0,4);
+				--local rotx,roty,rotz = localDirectionToWorld(vehicle.components[1].node, 0, 0, 1);
+				--print("get rotation: " .. rotx .. "/" .. roty .. "/" .. rotz);
+				--local x,y,z = getWorldTranslation( self.components[1].node );
+				--print("get location: " .. x .. "/" .. y .. "/" .. z);
 
 				--print("executing input_silomode");
 				if vehicle.bReverseTrack == false then
@@ -1390,6 +1396,8 @@ function init(self)
 	end;
 	self.moduleInitialized = true;
 	self.currentInput = "";
+	self.previousSpeed = self.nSpeed;
+	self.speed_override = nil;
 
 	self.requestWayPointTimer = 10000;
 
@@ -1545,6 +1553,14 @@ function AutoDrive:update(dt)
 		if InputBinding.hasEvent(InputBinding.ADSelectPreviousTarget) then
 			AutoDrive:InputHandling(self, "input_previousTarget");
 		end;
+		if InputBinding.hasEvent(InputBinding.ADSelectTargetMouseWheel) and g_currentMission.AutoDrive.showMouse then
+			AutoDrive:InputHandling(self, "input_nextTarget");
+
+		end;
+
+		if InputBinding.hasEvent(InputBinding.ADSelectPreviousTargetMouseWheel) and g_currentMission.AutoDrive.showMouse then
+			AutoDrive:InputHandling(self, "input_previousTarget");
+		end;
 		
 		if InputBinding.hasEvent(InputBinding.ADActivateDebug)  then 
 			AutoDrive:InputHandling(self, "input_debug");			
@@ -1592,8 +1608,8 @@ function AutoDrive:update(dt)
 		end;
 		if InputBinding.hasEvent(InputBinding.ADDebugDeleteWayPoint) then 
 			AutoDrive:InputHandling(self, "input_removeWaypoint");
-			
 		end;
+
 		
 	end;
 
@@ -1704,8 +1720,8 @@ function AutoDrive:update(dt)
 						AutoDrive:deactivate(self,true);
 					end;
 				else
-					local min_distance = 1.4;
-					if self.typeDesc == "combine" then
+					local min_distance = 1.8;
+					if self.typeDesc == "combine" or  self.typeDesc == "harvester" then
 						min_distance = 6;
 					end;
 					if self.typeDesc == "telehandler" then
@@ -1713,7 +1729,7 @@ function AutoDrive:update(dt)
 					end;
 
 					if getDistance(x,z, self.nTargetX, self.nTargetZ) < min_distance then
-						
+						self.previousSpeed = self.speed_override;
 						self.nTimeToDeadLock = 10000;
 						
 						if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
@@ -1787,10 +1803,12 @@ function AutoDrive:update(dt)
 				if self.bActive == true then
 					if self.isServer == true then
 						if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
+
+							local traffic = AutoDrive:detectTraffic(self,self.ad.wayPoints[self.nCurrentWayPoint]);
 							--AutoDrive:addlog("Issuing Drive Request");
 							xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
 
-							local speed_override = -1;
+							self.speed_override = -1;
 							if self.ad.wayPoints[self.nCurrentWayPoint-1] ~= nil and self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
 								local wp_ahead = self.ad.wayPoints[self.nCurrentWayPoint+1];
 								local wp_current = self.ad.wayPoints[self.nCurrentWayPoint];
@@ -1799,65 +1817,47 @@ function AutoDrive:update(dt)
 																		{x=	wp_current.x-	wp_ref.x, z = wp_current.z - wp_ref.z } )
 
 
-								if angle < 3 then speed_override = -1; end;
-								if angle >= 3 and angle < 5 then speed_override = 35; end;
-								if angle >= 5 and angle < 8 then speed_override = 30; end;
-								if angle >= 8 and angle < 12 then speed_override = 25; end;
-								if angle >= 12 and angle < 15 then speed_override = 15; end;
-								if angle >= 15 and angle < 20 then speed_override = 14; end;
-								if angle >= 20 and angle < 30 then speed_override = 9; end;
-								if angle >= 30 and angle < 90 then speed_override = 4; end;
+								if angle < 3 then self.speed_override = self.nSpeed; end;
+								if angle >= 3 and angle < 5 then self.speed_override = 35; end;
+								if angle >= 5 and angle < 8 then self.speed_override = 30; end;
+								if angle >= 8 and angle < 12 then self.speed_override = 25; end;
+								if angle >= 12 and angle < 15 then self.speed_override = 15; end;
+								if angle >= 15 and angle < 20 then self.speed_override = 14; end;
+								if angle >= 20 and angle < 30 then self.speed_override = 9; end;
+								if angle >= 30 and angle < 90 then self.speed_override = 4; end;
 
 								--print("Angle: " .. angle .. " speed: " .. speed_override);
+								local distance_wps = getDistance(wp_ref.x,wp_ref.z,wp_current.x,wp_current.z);
+								local distance_vehicle = getDistance(wp_current.x,wp_current.z,x,z );
+
+								if self.previousSpeed > self.speed_override then
+									self.speed_override = self.speed_override + math.min(1,distance_vehicle/distance_wps) * (self.previousSpeed - self.speed_override);
+								else
+									self.speed_override = self.speed_override - math.min(1,distance_vehicle/distance_wps) * (self.speed_override - self.previousSpeed);
+								end;
+								--print("Speed override: " .. self.speed_override);
 
 							end;
-							if speed_override == -1 then speed_override = self.nSpeed; end;
+							if self.speed_override == -1 then self.speed_override = self.nSpeed; end;
 
 							local wp_new = nil;
-							--[[
-							if self.typeDesc == "combine" or self.typeDesc == "telehandler" then
 
-								if self.ad.wayPoints[self.nCurrentWayPoint-1] ~= nil then
-									wp_ref = self.ad.wayPoints[self.nCurrentWayPoint-1];
-									wp = self.ad.wayPoints[self.nCurrentWayPoint];
-									wp_new = {};
-									local ratio_x = (wp.x - wp_ref.x) / ( (wp.x - wp_ref.x) + (wp.z - wp_ref.z));
-									local ratio_y = (wp.z - wp_ref.z) / ( (wp.x - wp_ref.x) + (wp.z - wp_ref.z));
-
-									wp_new.x = wp.x + ratio_x * 5;
-									wp_new.z = wp.z + ratio_y * 5;
-
-									if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
-										wp_new.x = self.ad.wayPoints[self.nCurrentWayPoint+1].x;
-										wp_new.z = self.ad.wayPoints[self.nCurrentWayPoint+1].z;
-									end;
-
-									if self.ad.wayPoints[self.nCurrentWayPoint+2] ~= nil then
-
-										local wp_ahead = self.ad.wayPoints[self.nCurrentWayPoint+2];
-										local wp_current = self.ad.wayPoints[self.nCurrentWayPoint+1];
-										local wp_ref = self.ad.wayPoints[self.nCurrentWayPoint];
-										local angle = AutoDrive:angleBetween( 	{x=	wp_ahead.x	-	wp_ref.x, z = wp_ahead.z - wp_ref.z },
-											{x=	wp_current.x-	wp_ref.x, z = wp_current.z - wp_ref.z } )
-
-										if angle >= 8 then
-											wp_new.x = self.ad.wayPoints[self.nCurrentWayPoint+2].x;
-											wp_new.z = self.ad.wayPoints[self.nCurrentWayPoint+2].z;
-										end;
-									end;
-
-									drawDebugLine(self.ad.wayPoints[self.nCurrentWayPoint-1].x, self.ad.wayPoints[self.nCurrentWayPoint-1].y+4, self.ad.wayPoints[self.nCurrentWayPoint-1].z, 1,0,0, wp_new.x, self.ad.wayPoints[self.nCurrentWayPoint].y+4, wp_new.z, 1,0,0);
-
-									--print("Correcting wp for combine - old wp: " .. wp.x .. "/" .. wp.z .. " new: " .. wp_new.x .. "/" .. wp_new.z .. "wp_ref: ".. wp_ref.x .. "/" .. wp_ref.z);
-
-								end;
-							end;
-							--]]
 							if wp_new ~= nil then
 								xl,yl,zl = worldToLocal(veh.components[1].node, wp_new.x,y,wp_new.z);
 							end;
 
-							AIVehicleUtil.driveToPoint(self, dt, 1, true, self.bDrivingForward, xl, zl, speed_override, false );
+							local finalSpeed = self.speed_override;
+							local finalAcceleration = true;
+							if traffic then
+								finalSpeed = 0;
+								veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
+								finalAcceleration = false;
+								self.nTimeToDeadLock = 10000;
+							else
+								veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_ON);
+							end;
+
+							AIVehicleUtil.driveToPoint(self, dt, 1, finalAcceleration, self.bDrivingForward, xl, zl, finalSpeed, false );
 						else
 							--print("Reaching last waypoint - slowing down");
 							xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
@@ -1866,7 +1866,7 @@ function AutoDrive:update(dt)
 					end;
 				end;
 			end;
-		if self.typeDesc == "combine" then
+		if self.typeDesc == "combine" or self.typeDesc == "harvester" then
 			veh.aiSteeringSpeed = 1;
 		else
 			veh.aiSteeringSpeed = 0.4;
@@ -2587,7 +2587,160 @@ function AutoDrive:angleBetween(vec1, vec2)
 
 	return math.deg(math.acos(scalarproduct));
 end
- 
+
+function AutoDrive:detectTraffic(vehicle, wp_next)
+
+	local x,y,z = getWorldTranslation( vehicle.components[1].node );
+	--create bounding box to check for vehicle
+	local width = vehicle.sizeWidth;
+	local length = vehicle.sizeLength;
+	local vectorToWp = { x = wp_next.x - x, z = wp_next.z - z };
+	local ortho = { x=-vectorToWp.z, z=vectorToWp.x };
+	local boundingBox = {};
+	boundingBox[1] ={ 	x = x + (width/2) * ( ortho.x / (math.abs(ortho.x)+math.abs(ortho.z)) ),
+						z = z + (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) };
+	boundingBox[2] ={ 	x = x - (width/2) * ( ortho.x / (math.abs(ortho.x)+math.abs(ortho.z)) ),
+						z = z - (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) };
+	boundingBox[3] ={ 	x = x - (width/2) * ( ortho.x / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 4) * (vectorToWp.x/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )),
+						z = z - (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 4) * (vectorToWp.z/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )) };
+	boundingBox[4] ={ 	x = x + (width/2) * ( ortho.x / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 4) * (vectorToWp.x/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )),
+						z = z + (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 4) * (vectorToWp.z/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )) };
+
+	--[[
+	drawDebugLine(boundingBox[1].x, y+4, boundingBox[1].z, 1,0,0, boundingBox[2].x, y+4, boundingBox[2].z, 1,0,0);
+	drawDebugLine(boundingBox[2].x, y+4, boundingBox[2].z, 1,0,0, boundingBox[3].x, y+4, boundingBox[3].z, 1,0,0);
+	drawDebugLine(boundingBox[3].x, y+4, boundingBox[3].z, 1,0,0, boundingBox[4].x, y+4, boundingBox[4].z, 1,0,0);
+	drawDebugLine(boundingBox[4].x, y+4, boundingBox[4].z, 1,0,0, boundingBox[1].x, y+4, boundingBox[1].z, 1,0,0);
+	--]]
+
+	for _,other in pairs(g_currentMission.vehicles) do
+		if other ~= vehicle then
+			if other.sizeWidth == nil then
+				--print("vehicle " .. other.configFileName .. " has no width");
+			else
+				if other.sizeLength == nil then
+					print("vehicle " .. other.configFileName .. " has no length");
+				else
+					if other.rootNode == nil then
+						print("vehicle " .. other.configFileName .. " has no root node");
+					else
+
+						local otherWidth = other.sizeWidth;
+						local otherLength = other.sizeLength;
+						local otherPos = {};
+						otherPos.x,otherPos.y,otherPos.z = getWorldTranslation( other.components[1].node );
+
+						local rx,ry,rz = localDirectionToWorld(other.components[1].node, 0, 0, 1);
+
+						local otherVectorToWp = {};
+						otherVectorToWp.x = rx --math.sin(rx);
+						otherVectorToWp.z = rz --math.cos(rx);
+
+						local otherPos2 = {};
+						otherPos2.x = otherPos.x + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
+						otherPos2.y = y;
+						otherPos2.z = otherPos.z + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
+						--otherPos2.x,otherPos2.y,otherPos2.z = getWorldTranslation( other.components[2].node );
+						--local otherVectorToWp = { x = otherPos2.x - otherPos.x, z = otherPos2.z - otherPos.z};
+						local otherOrtho = { x=-otherVectorToWp.z, z=otherVectorToWp.x };
+
+						local otherBoundingBox = {};
+						otherBoundingBox[1] ={ 	x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+												z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+
+						otherBoundingBox[2] ={ 	x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+												z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+						otherBoundingBox[3] ={ 	x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+												z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+
+						otherBoundingBox[4] ={ 	x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+												z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+
+						--[[
+						drawDebugLine(otherPos.x,y+4,otherPos.z, 1,0,0, otherPos2.x,y+4,otherPos2.z, 1,0,0);
+						drawDebugLine(otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1, otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1);
+						drawDebugLine(otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1, otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1);
+						drawDebugLine(otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1, otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1);
+						drawDebugLine(otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1, otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1);
+						--]]
+
+						if AutoDrive:BoxesIntersect(boundingBox, otherBoundingBox) == true then
+							--print("vehicle " .. other.configFileName .. " has collided with " .. vehicle.configFileName);
+							return true;
+						end;
+
+					end;
+				end;
+			end;
+		end;
+	end;
+
+	return false;
+	--Todo: ackermannSteeringIndex
+end
+
+function AutoDrive:BoxesIntersect(a,b)
+
+
+		local polygons = {a, b};
+		local minA, maxA,minB,maxB;
+
+		for i,polygon in pairs(polygons) do
+
+			-- for each polygon, look at each edge of the polygon, and determine if it separates
+			-- the two shapes
+
+			for i1, corners in pairs(polygon) do
+				--grab 2 vertices to create an edge
+				local i2 = (i1%4 + 1) ;
+				local p1 = polygon[i1];
+				local p2 = polygon[i2];
+
+				-- find the line perpendicular to this edge
+				local normal = { x =  p2.z - p1.z, z = p1.x - p2.x };
+
+				minA = nil;
+				maxA = nil;
+				-- for each vertex in the first shape, project it onto the line perpendicular to the edge
+				-- and keep track of the min and max of these values
+
+				for j,corner in pairs(polygons[1]) do
+					local projected = normal.x * corner.x + normal.z * corner.z;
+					if minA == nil or projected < minA then
+						minA = projected;
+					end;
+					if maxA == nil or projected > maxA then
+						maxA = projected;
+					end;
+				end;
+
+				--for each vertex in the second shape, project it onto the line perpendicular to the edge
+				--and keep track of the min and max of these values
+				minB = nil;
+				maxB = nil;
+				for j, corner in pairs(polygons[2]) do
+					projected = normal.x * corner.x + normal.z * corner.z;
+					if minB == nil or projected < minB then
+						minB = projected;
+					end;
+					if maxB == nil or projected > maxB then
+							maxB = projected;
+					end;
+				end;
+				-- if there is no overlap between the projects, the edge we are looking at separates the two
+				-- polygons, and we know there is no overlap
+				if maxA < minB or maxB < minA then
+					--print("polygons don't intersect!");
+					return false;
+				end;
+			end;
+		end;
+
+		--print("polygons intersect!");
+		return true;
+
+end
+
 addModEventListener(AutoDrive);
 
 --InputEvent%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
