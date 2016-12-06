@@ -35,6 +35,8 @@
 		<text name="input_ADSelectPreviousTargetMouseWheel">	<en>AD: Select Previous Target (Mouse)</en>  	<de>AD: Voriges Ziel wählen (Mausrad)</de>	</text>
 		<text name="input_AD_Speed_up">							<en>AD: Increase Speed</en>  					<de>AD: Geschwindigkeit erhöhen</de>		</text>
 		<text name="input_AD_Speed_down">						<en>AD: Decrease Speed</en>  					<de>AD: Geschwindigkeit verringern</de>		</text>
+		<text name="input_AD_export_routes">					<en>AD: Export Routes</en>  					<de>AD: Strecken exportieren</de>			</text>
+		<text name="input_AD_import_routes">					<en>AD: Import Routes</en>  					<de>AD: Strecken importieren</de>			</text>
 			
 		<text name="input_ADActivateDebug">			<en>AD: Activate Debug Mode</en> 		<de>AD: Debug Modus aktivieren</de>			</text>		
 		<text name="input_ADDebugShowClosest">		<en>AD: Show Closest Point</en>  		<de>AD: Naheliegendsten Punkt anzeigen</de>	</text>		
@@ -164,7 +166,17 @@
 			<en>Please enter new name (Stop with enter key)</en>
 			<de>Namen eingeben - Beenden mit Enter-Taste</de>
 		</text>
-		
+
+		<text name="AD_Recalculationg_routes_status">
+			<en>Recalculating routes. Please wait. Finished:</en>
+			<de>Routen werden neuberechnet. Bitte warten. Berechnet:</de>
+		</text>
+
+		<text name="AD_intermediate">
+			<en>Unload at:</en>
+			<de>Abladestelle:</de>
+		</text>
+
 	</l10n>
 	
 	<inputBindings>			
@@ -180,6 +192,8 @@
 		<input name="ADSelectPreviousTargetMouseWheel" 	category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="MOUSE_BUTTON_WHEEL_UP" />
 		<input name="AD_Speed_up" 						category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
 		<input name="AD_Speed_down" 					category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
+		<input name="AD_export_routes" 					category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
+		<input name="AD_import_routes" 					category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
 		
 		<input name="ADActivateDebug" 					category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
 		<input name="ADDebugShowClosest" 				category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />

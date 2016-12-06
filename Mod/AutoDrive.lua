@@ -305,7 +305,7 @@ function AutoDrive:load(xmlFile)
 			--print("retrieving waypoints");
 			--print("map " .. g_currentMission.autoLoadedMap .. " waypoints are loaded");
 			self.loadedMap = g_currentMission.autoLoadedMap;
-			if self.loadedMap ~= nil then --g_currentMission.autoLoadedMap == "Goldcrest" then 
+			if self.loadedMap ~= nil then
 				
 				local idString = getXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.id");
 				local idTable = Utils.splitString("," , idString);
@@ -439,8 +439,15 @@ function AutoDrive:load(xmlFile)
 				while mapMarker.name ~= nil do
 					--print("Loading map marker: " .. mapMarker.name);
 					mapMarker.id = getXMLFloat(adXml,"AutoDrive." .. self.loadedMap ..".mapmarker.mm"..mapMarkerCounter..".id");
-					
+
+					local node = createTransformGroup(mapMarker.name);
+					setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].x, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].y + 4 , g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].z  );
+					mapMarker.node = node;
+					--TODO: do this on import as well
+
 					g_currentMission.AutoDrive.mapMarker[mapMarkerCounter] = mapMarker;
+
+
 					mapMarker = nil;
 					mapMarker = {};
 					mapMarkerCounter = mapMarkerCounter + 1;	
@@ -452,8 +459,6 @@ function AutoDrive:load(xmlFile)
 					print("wp.id: " .. g_currentMission.AutoDrive.mapWayPoints[i].id);
 				end;
 				--]]
-			else
-				print("AutoDrive: Waypoints and markers are not yet supported on this map - Try it on Goldcrest");
 			end;
 				
 			
@@ -615,6 +620,10 @@ function AutoDrive:loadHud()
 	AutoDrive:AddButton("input_recalculate", "recalculate.dds", "recalculate.dds", true, false);
 	AutoDrive:AddButton("input_removeWaypoint", "deleteWaypoint.dds", "deleteWaypoint.dds", true, false);
 
+	AutoDrive:AddButton("input_previousTarget_Unload", "previousTarget.dds", "previousTarget.dds", true, false);
+	AutoDrive:AddButton("input_nextTarget_Unload", "nextTarget.dds", "nextTarget.dds", true, false);
+	AutoDrive:AddButton("input_continue", "silomode_off.dds", "silomode_off.dds", true, false);
+
 end;
 
 function AutoDrive:AddButton(name, img, img2, on, visible)
@@ -680,42 +689,42 @@ function AutoDrive:InputHandling(vehicle, input)
 			--print("Executing InputHandling with input: " .. input);
 			--print("correct vehicle");
 			if input == "input_silomode" and g_dedicatedServerInfo == nil and g_server ~= nil then
-				--DebugUtil.printTableRecursively(g_currentMission, "	:	",0,2);
-				--DebugUtil.printTableRecursively(g_currentMission.trafficSystem, "	:	",0,2);
-				--local rotx,roty,rotz = localDirectionToWorld(vehicle.components[1].node, 0, 0, 1);
-				--print("get rotation: " .. rotx .. "/" .. roty .. "/" .. rotz);
-				--local x,y,z = getWorldTranslation( self.components[1].node );
-				--print("get location: " .. x .. "/" .. y .. "/" .. z);
+				--DebugUtil.printTableRecursively(g_currentMission.fieldDefinitionBase, "	:	",0,4);
 
-				--print("executing input_silomode");
-				if vehicle.bReverseTrack == false then
+				if vehicle.bTargetMode == true and vehicle.bUnloadAtTrigger == false then
 					vehicle.bReverseTrack = true;
 					vehicle.bDrivingForward = true;
 					vehicle.bTargetMode = false;
 					vehicle.bRoundTrip = false;
+					vehicle.savedSpeed = vehicle.nSpeed;
 					vehicle.nSpeed = 15;
-					--print("reverse track = true");
-					--vehicle.printMessage = g_i18n:getText("AD_Silomode_on");
-					--vehicle.nPrintTime = 3000;
+					vehicle.bUnloadAtTrigger = false;
 				else
-					vehicle.bReverseTrack = false;
-					vehicle.bDrivingForward = true;
-					--print("reverse track = false");
-					--vehicle.printMessage = g_i18n:getText("AD_Silomode_off");
-					--vehicle.nPrintTime = 3000;
-				end;
+					if vehicle.bReverseTrack == true then
+						vehicle.bReverseTrack = false;
+						vehicle.bDrivingForward = true;
+						vehicle.bTargetMode = true;
+						vehicle.bRoundTrip = false;
+						vehicle.bUnloadAtTrigger = true;
 
-
-				for _,button in pairs(AutoDrive.Hud.Buttons) do
-					if button.name == "input_silomode" then
-						local buttonImg = "";
-						if vehicle.bReverseTrack == true then
-							button.img_active = button.img_on;
-						else
-							button.img_active = button.img_off;
+						if vehicle.savedSpeed ~= nil then
+							vehicle.nSpeed = vehicle.savedSpeed;
+							vehicle.savedSpeed = nil;
 						end;
 
-						button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+
+					else
+						if vehicle.bTargetMode == true and vehicle.bUnloadAtTrigger == true then
+							vehicle.bReverseTrack = false;
+							vehicle.bDrivingForward = true;
+							vehicle.bTargetMode = true;
+							vehicle.bRoundTrip = false;
+							vehicle.bUnloadAtTrigger = false;
+							if vehicle.savedSpeed ~= nil then
+								vehicle.nSpeed = vehicle.savedSpeed;
+								vehicle.savedSpeed = nil;
+							end;
+						end;
 					end;
 				end;
 			end;
@@ -1032,7 +1041,7 @@ function AutoDrive:InputHandling(vehicle, input)
 			end;
 
 			if input == "input_increaseSpeed" then
-				if vehicle.nSpeed < 40 then
+				if vehicle.nSpeed < 50 then
 					vehicle.nSpeed = vehicle.nSpeed + 1;
 
 				else
@@ -1086,45 +1095,144 @@ function AutoDrive:InputHandling(vehicle, input)
 			end;
 		end;
 
-			if input == "input_removeWaypoint" and g_server ~= nil and g_dedicatedServerInfo == nil then
+		if input == "input_removeWaypoint" and g_server ~= nil and g_dedicatedServerInfo == nil then
 
-				if vehicle.bShowDebugMapMarker == true then
-					local closest = AutoDrive:findClosestWayPoint(vehicle)
-					print("removing waypoint with id: " .. closest);
-					AutoDrive:removeMapWayPoint( g_currentMission.AutoDrive.mapWayPoints[closest] );
+			if vehicle.bShowDebugMapMarker == true then
+				local closest = AutoDrive:findClosestWayPoint(vehicle)
+				print("removing waypoint with id: " .. closest);
+				AutoDrive:removeMapWayPoint( g_currentMission.AutoDrive.mapWayPoints[closest] );
+			end;
+
+		end;
+
+		if input == "input_recalculate" and g_server ~= nil and g_dedicatedServerInfo == nil then
+			AutoDrive:ContiniousRecalculation();
+
+		end;
+
+		if input == "input_exportRoutes" then
+			AutoDrive:ExportRoutes();
+		end;
+
+		if input == "input_importRoutes" then
+			AutoDrive:ImportRoutes();
+		end;
+
+		if input == "input_nextTarget_Unload" then
+			if  g_currentMission.AutoDrive.mapMarker[1] ~= nil and g_currentMission.AutoDrive.mapWayPoints[1] ~= nil then
+				if vehicle.nMapMarkerSelected_Unload == -1 then
+					vehicle.nMapMarkerSelected_Unload = 1
+
+					vehicle.ntargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].id;
+
+					vehicle.sTargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].name;
+					local translation = AutoDrive:translate(vehicle.sTargetSelected_Unload);
+					vehicle.sTargetSelected_Unload = translation;
+				else
+					vehicle.nMapMarkerSelected_Unload = vehicle.nMapMarkerSelected_Unload + 1;
+					if vehicle.nMapMarkerSelected_Unload > g_currentMission.AutoDrive.mapMarkerCounter then
+						vehicle.nMapMarkerSelected_Unload = 1;
+					end;
+					vehicle.ntargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].id;
+					vehicle.sTargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].name;
+					local translation = AutoDrive:translate(vehicle.sTargetSelected_Unload);
+					vehicle.sTargetSelected_Unload = translation;
 				end;
-
 			end;
 
-			if input == "input_recalculate" and g_server ~= nil and g_dedicatedServerInfo == nil then
-				for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-						point.marker = {};
+		end;
+
+		if input == "input_previousTarget_Unload" then
+			if g_currentMission.AutoDrive.mapMarker[1] ~= nil and g_currentMission.AutoDrive.mapWayPoints[1] ~= nil then
+				if vehicle.nMapMarkerSelected_Unload == -1 then
+					vehicle.nMapMarkerSelected_Unload = g_currentMission.AutoDrive.mapMarkerCounter;
+
+					vehicle.ntargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].id;
+					vehicle.sTargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].name;
+					local translation = AutoDrive:translate(vehicle.sTargetSelected_Unload);
+					vehicle.sTargetSelected_Unload = translation;
+				else
+					vehicle.nMapMarkerSelected_Unload = vehicle.nMapMarkerSelected_Unload - 1;
+					if vehicle.nMapMarkerSelected_Unload < 1 then
+						vehicle.nMapMarkerSelected_Unload = g_currentMission.AutoDrive.mapMarkerCounter;
 					end;
-
-					print("AD: recalculating routes");
-					for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
-
-						local tempAD = AutoDrive:dijkstra(g_currentMission.AutoDrive.mapWayPoints, marker.id,"incoming");
-
-						for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-
-							point.marker[marker.name] = tempAD.pre[point.id];
-
-						end;
-
-
-					end;
-					if g_currentMission.AutoDrive.adXml ~= nil then
-						setXMLString(g_currentMission.AutoDrive.adXml, "AutoDrive.Recalculation","false");
-						AutoDrive:MarkChanged();
-						g_currentMission.AutoDrive.handledRecalculation = true;
-					end;
+					vehicle.ntargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].id;
+					vehicle.sTargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].name;
+					local translation = AutoDrive:translate(vehicle.sTargetSelected_Unload);
+					vehicle.sTargetSelected_Unload = translation;
+				end;
 			end;
-		--end;
+		end;
+
+		if input == "input_continue" then
+			if vehicle.bPaused == true then
+				vehicle.bPaused = false;
+			end;
+		end;
 	end;
 	vehicle.currentInput = "";
 
 end;
+
+function AutoDrive:ContiniousRecalculation()
+
+	if  g_currentMission.AutoDrive.Recalculation.continue == true then
+		if g_currentMission.AutoDrive.Recalculation.initializedWaypoints == false then
+			for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+				point.marker = {};
+			end;
+			g_currentMission.AutoDrive.Recalculation.initializedWaypoints = true;
+			return 10;
+		end;
+
+		local markerFinished = false;
+		for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+			if markerFinished == false then
+				if i == g_currentMission.AutoDrive.Recalculation.nextMarker then
+
+					local tempAD = AutoDrive:dijkstra(g_currentMission.AutoDrive.mapWayPoints, marker.id,"incoming");
+
+					for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+
+						point.marker[marker.name] = tempAD.pre[point.id];
+
+					end;
+
+					markerFinished = true;
+				end;
+			else
+				g_currentMission.AutoDrive.Recalculation.nextMarker = i;
+				g_currentMission.AutoDrive.Recalculation.handledMarkers = g_currentMission.AutoDrive.Recalculation.handledMarkers + 1;
+				return 10 + math.ceil((g_currentMission.AutoDrive.Recalculation.handledMarkers/g_currentMission.AutoDrive.mapMarkerCounter) * 90)
+			end;
+
+		end;
+
+		if g_currentMission.AutoDrive.adXml ~= nil then
+			setXMLString(g_currentMission.AutoDrive.adXml, "AutoDrive.Recalculation","false");
+			AutoDrive:MarkChanged();
+			g_currentMission.AutoDrive.handledRecalculation = true;
+		end;
+
+		g_currentMission.AutoDrive.Recalculation.continue = false;
+		return 100;
+
+	else
+		g_currentMission.AutoDrive.Recalculation = {};
+		g_currentMission.AutoDrive.Recalculation.continue = true;
+		g_currentMission.AutoDrive.Recalculation.initializedWaypoints = false;
+		g_currentMission.AutoDrive.Recalculation.nextMarker = ""
+		for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+			if g_currentMission.AutoDrive.Recalculation.nextMarker == "" then
+				g_currentMission.AutoDrive.Recalculation.nextMarker = i;
+			end;
+		end;
+		g_currentMission.AutoDrive.Recalculation.handledMarkers = 0;
+		g_currentMission.AutoDrive.Recalculation.nextCalculationSkipFrames = 6;
+
+		return 5;
+	end;
+end
 
 function AutoDrive:onLeave()
 	if g_currentMission.AutoDrive.showMouse then
@@ -1354,7 +1462,7 @@ function init(self)
 	self.sTargetSelected = "";
 	if g_currentMission.AutoDrive ~= nil then
 		if g_currentMission.AutoDrive.mapMarker[1] ~= nil then
-			self.ntargetSelected = 1;
+			self.ntargetSelected = g_currentMission.AutoDrive.mapMarker[1].id;
 			self.nMapMarkerSelected = 1;
 			self.sTargetSelected = g_currentMission.AutoDrive.mapMarker[1].name;
 			local translation = AutoDrive:translate(sTargetSelected);
@@ -1370,7 +1478,7 @@ function init(self)
 	self.bChangeSelectedDebugPoint = false;
 	self.DebugPointsIterated = {};
 	self.bDeadLock = false;
-	self.nTimeToDeadLock = 10000;
+	self.nTimeToDeadLock = 15000;
 	self.bDeadLockRepairCounter = 4;
 	
 	self.bStopAD = false;
@@ -1400,6 +1508,27 @@ function init(self)
 	self.speed_override = nil;
 
 	self.requestWayPointTimer = 10000;
+
+	self.bUnloadAtTrigger = false;
+	self.bUnloading = false;
+	self.bPaused = false;
+	self.bUnloadSwitch = false;
+
+	g_currentMission.AutoDrive.Recalculation = {};
+
+	self.ntargetSelected_Unload = -1;
+	self.nMapMarkerSelected_Unload = -1;
+	self.sTargetSelected_Unload = "";
+	if g_currentMission.AutoDrive ~= nil then
+		if g_currentMission.AutoDrive.mapMarker[1] ~= nil then
+			self.ntargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[1].id;
+			self.nMapMarkerSelected_Unload = 1;
+			self.sTargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[1].name;
+			local translation = AutoDrive:translate(sTargetSelected_Unload);
+			sTargetSelected_Unload = translation;
+		end;
+	end;
+
 
 end;
 
@@ -1522,10 +1651,7 @@ function AutoDrive:update(dt)
 	if self == g_currentMission.controlledVehicle then
 		--self.printMessage = "Vehicle: " .. self.name;
 		--self.nPrintTime = 3000;
-		
-		
-		
-		
+
 		if InputBinding.hasEvent(InputBinding.ADSilomode) then
 			
 			--print("sending event to InputHandling");
@@ -1609,12 +1735,34 @@ function AutoDrive:update(dt)
 		if InputBinding.hasEvent(InputBinding.ADDebugDeleteWayPoint) then 
 			AutoDrive:InputHandling(self, "input_removeWaypoint");
 		end;
+		if InputBinding.hasEvent(InputBinding.AD_export_routes) then
+			AutoDrive:InputHandling(self, "input_exportRoutes");
+		end;
+		if InputBinding.hasEvent(InputBinding.AD_import_routes) then
+			AutoDrive:InputHandling(self, "input_importRoutes");
+		end;
 
-		
 	end;
 
 	if self.moduleInitialized == nil then
 		init(self);
+	end;
+
+
+	if g_currentMission.AutoDrive.Recalculation ~= nil then
+		if  g_currentMission.AutoDrive.Recalculation.continue == true then
+			if g_currentMission.AutoDrive.Recalculation.nextCalculationSkipFrames <= 0 then
+				g_currentMission.AutoDrive.recalculationPercentage = AutoDrive:ContiniousRecalculation();
+				g_currentMission.AutoDrive.Recalculation.nextCalculationSkipFrames = 6;
+
+				AutoDrive.nPrintTime = 10000;
+				AutoDrive.printMessage = g_i18n:getText("AD_Recalculationg_routes_status") .. " " .. g_currentMission.AutoDrive.recalculationPercentage .. "%";
+				print(AutoDrive.printMessage);
+			else
+				g_currentMission.AutoDrive.Recalculation.nextCalculationSkipFrames =  g_currentMission.AutoDrive.Recalculation.nextCalculationSkipFrames - 1;
+			end;
+
+		end;
 	end;
 
 	if self.requestWayPointTimer >= 0 then
@@ -1650,7 +1798,7 @@ function AutoDrive:update(dt)
 		
 	else
 		self.bDeadLock = false;
-		self.nTimeToDeadLock = 10000;
+		self.nTimeToDeadLock = 15000;
 		self.bDeadLockRepairCounter = 4;
 		--self.forceIsActive = false;
 		--self.stopMotorOnLeave = true;
@@ -1686,6 +1834,7 @@ function AutoDrive:update(dt)
 	if self.bStopAD == true and self.isServer then
 		AutoDrive:deactivate(self,false);
 		self.bStopAD = false;
+		self.bPaused = false;
 	end;
 	
 	if self.components ~= nil and self.isServer then
@@ -1693,51 +1842,52 @@ function AutoDrive:update(dt)
 		local x,y,z = getWorldTranslation( self.components[1].node );
 		local xl,yl,zl = worldToLocal(veh.components[1].node, x,y,z);
 			
-			if self.bActive == true then
-				if self.steeringEnabled then
-					self.steeringEnabled = false;
-				end
-				
-				if self.bInitialized == false then
-					self.nTimeToDeadLock = 10000;
-					if self.bTargetMode == true then
-						local closest = AutoDrive:findClosestWayPoint(veh);
-						self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name, self.ntargetSelected);
-						self.nCurrentWayPoint = 3;
-					else
-						self.nCurrentWayPoint = 1;
-					end;
-					
-					if self.ad.wayPoints[self.nCurrentWayPoint] ~= nil then
+		if self.bActive == true and self.bPaused == false then
+			if self.steeringEnabled then
+				self.steeringEnabled = false;
+			end
+
+			if self.bInitialized == false then
+				self.nTimeToDeadLock = 15000;
+				if self.bTargetMode == true then
+					local closest = AutoDrive:findMatchingWayPoint(veh) --AutoDrive:findClosestWayPoint(veh);
+					self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name, self.ntargetSelected);
+					self.nCurrentWayPoint = 3;
+				else
+					self.nCurrentWayPoint = 1;
+				end;
+
+				if self.ad.wayPoints[self.nCurrentWayPoint] ~= nil then
+					self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
+					self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
+					self.bInitialized = true;
+					self.bDrivingForward = true;
+
+				else
+					--print("Autodrive hat ein Problem festgestellt");
+					print("Autodrive hat ein Problem beim Initialisieren festgestellt");
+					AutoDrive:deactivate(self,true);
+				end;
+			else
+				local min_distance = 1.8;
+				if self.typeDesc == "combine" or  self.typeDesc == "harvester" then
+					min_distance = 6;
+				end;
+				if self.typeDesc == "telehandler" then
+					min_distance = 3;
+				end;
+
+				if getDistance(x,z, self.nTargetX, self.nTargetZ) < min_distance then
+					self.previousSpeed = self.speed_override;
+					self.nTimeToDeadLock = 15000;
+
+					if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
+						self.nCurrentWayPoint = self.nCurrentWayPoint + 1;
 						self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
 						self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
-						self.bInitialized = true;
-						self.bDrivingForward = true;
-						
-					else						
-						--print("Autodrive hat ein Problem festgestellt");
-						print("Autodrive hat ein Problem beim Initialisieren festgestellt");
-						AutoDrive:deactivate(self,true);
-					end;
-				else
-					local min_distance = 1.8;
-					if self.typeDesc == "combine" or  self.typeDesc == "harvester" then
-						min_distance = 6;
-					end;
-					if self.typeDesc == "telehandler" then
-						min_distance = 3;
-					end;
-
-					if getDistance(x,z, self.nTargetX, self.nTargetZ) < min_distance then
-						self.previousSpeed = self.speed_override;
-						self.nTimeToDeadLock = 10000;
-						
-						if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
-							self.nCurrentWayPoint = self.nCurrentWayPoint + 1;
-							self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
-							self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
-						else
-							--print("Last waypoint reached");
+					else
+						--print("Last waypoint reached");
+						if self.bUnloadAtTrigger == false then
 							if self.bRoundTrip == false then
 								--print("No Roundtrip");
 								if self.bReverseTrack == true then
@@ -1765,107 +1915,148 @@ function AutoDrive:update(dt)
 									self.nCurrentWayPoint = 1
 									self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
 									self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
-									
-								else				
+
+								else
 									--print("Shutting down");
 									AutoDrive.printMessage = g_i18n:getText("AD_Driver_of") .. " " .. self.name .. " " .. g_i18n:getText("AD_has_reached") .. " " .. self.sTargetSelected;
 									AutoDrive.nPrintTime = 6000;
 									if self.isServer == true then
 										xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
-										
+
 										AIVehicleUtil.driveToPoint(self, dt, 0, true, self.bDrivingForward, xl, zl, 0, false );
-										
+
 										veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
 									end;
-									
+
 									veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
-									
+
 									AutoDrive:deactivate(self,true);
 								end;
-							else	
+							else
 								--print("Going into next round");
 								self.nCurrentWayPoint = 1
 								if self.ad.wayPoints[self.nCurrentWayPoint] ~= nil then
 									self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
 									self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
-									
+
 								else
 									print("Autodrive hat ein Problem beim Rundkurs festgestellt");
 									AutoDrive:deactivate(self,true);
 								end;
 							end;
+						else
+							if self.bUnloadSwitch == true then
+								self.nTimeToDeadLock = 15000;
+
+								local closest = self.ad.wayPoints[self.nCurrentWayPoint].id;
+								self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name, self.ntargetSelected);
+								self.nCurrentWayPoint = 1;
+
+								self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
+								self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
+
+								self.bUnloadSwitch = false;
+
+
+
+							else
+								self.nTimeToDeadLock = 15000;
+
+								local closest = self.ad.wayPoints[self.nCurrentWayPoint].id;
+								self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected_Unload].name, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected_Unload].id);
+								self.nCurrentWayPoint = 1;
+
+								self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
+								self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
+
+								self.bPaused = true;
+								self.bUnloadSwitch = true;
+							end;
 						end;
 					end;
-						
 				end;
-				
-				
-				if self.bActive == true then
-					if self.isServer == true then
-						if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
 
-							local traffic = AutoDrive:detectTraffic(self,self.ad.wayPoints[self.nCurrentWayPoint]);
-							--AutoDrive:addlog("Issuing Drive Request");
-							xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
-
-							self.speed_override = -1;
-							if self.ad.wayPoints[self.nCurrentWayPoint-1] ~= nil and self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
-								local wp_ahead = self.ad.wayPoints[self.nCurrentWayPoint+1];
-								local wp_current = self.ad.wayPoints[self.nCurrentWayPoint];
-								local wp_ref = self.ad.wayPoints[self.nCurrentWayPoint-1];
-								local angle = AutoDrive:angleBetween( 	{x=	wp_ahead.x	-	wp_ref.x, z = wp_ahead.z - wp_ref.z },
-																		{x=	wp_current.x-	wp_ref.x, z = wp_current.z - wp_ref.z } )
+			end;
 
 
-								if angle < 3 then self.speed_override = self.nSpeed; end;
-								if angle >= 3 and angle < 5 then self.speed_override = 35; end;
-								if angle >= 5 and angle < 8 then self.speed_override = 30; end;
-								if angle >= 8 and angle < 12 then self.speed_override = 25; end;
-								if angle >= 12 and angle < 15 then self.speed_override = 15; end;
-								if angle >= 15 and angle < 20 then self.speed_override = 14; end;
-								if angle >= 20 and angle < 30 then self.speed_override = 9; end;
-								if angle >= 30 and angle < 90 then self.speed_override = 4; end;
+			if self.bActive == true then
+				if self.isServer == true then
+					if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
 
-								--print("Angle: " .. angle .. " speed: " .. speed_override);
-								local distance_wps = getDistance(wp_ref.x,wp_ref.z,wp_current.x,wp_current.z);
-								local distance_vehicle = getDistance(wp_current.x,wp_current.z,x,z );
+						local traffic = AutoDrive:detectTraffic(self,self.ad.wayPoints[self.nCurrentWayPoint]);
+						--AutoDrive:addlog("Issuing Drive Request");
+						xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
 
-								if self.previousSpeed > self.speed_override then
-									self.speed_override = self.speed_override + math.min(1,distance_vehicle/distance_wps) * (self.previousSpeed - self.speed_override);
-								else
-									self.speed_override = self.speed_override - math.min(1,distance_vehicle/distance_wps) * (self.speed_override - self.previousSpeed);
-								end;
-								--print("Speed override: " .. self.speed_override);
+						self.speed_override = -1;
+						if self.ad.wayPoints[self.nCurrentWayPoint-1] ~= nil and self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
+							local wp_ahead = self.ad.wayPoints[self.nCurrentWayPoint+1];
+							local wp_current = self.ad.wayPoints[self.nCurrentWayPoint];
+							local wp_ref = self.ad.wayPoints[self.nCurrentWayPoint-1];
+							local angle = AutoDrive:angleBetween( 	{x=	wp_ahead.x	-	wp_ref.x, z = wp_ahead.z - wp_ref.z },
+																	{x=	wp_current.x-	wp_ref.x, z = wp_current.z - wp_ref.z } )
 
-							end;
-							if self.speed_override == -1 then self.speed_override = self.nSpeed; end;
 
-							local wp_new = nil;
+							if angle < 3 then self.speed_override = self.nSpeed; end;
+							if angle >= 3 and angle < 5 then self.speed_override = 38; end;
+							if angle >= 5 and angle < 8 then self.speed_override = 32; end;
+							if angle >= 8 and angle < 12 then self.speed_override = 25; end;
+							if angle >= 12 and angle < 15 then self.speed_override = 15; end;
+							if angle >= 15 and angle < 20 then self.speed_override = 14; end;
+							if angle >= 20 and angle < 30 then self.speed_override = 9; end;
+							if angle >= 30 and angle < 90 then self.speed_override = 4; end;
 
-							if wp_new ~= nil then
-								xl,yl,zl = worldToLocal(veh.components[1].node, wp_new.x,y,wp_new.z);
-							end;
+							--print("Angle: " .. angle .. " speed: " .. speed_override);
+							local distance_wps = getDistance(wp_ref.x,wp_ref.z,wp_current.x,wp_current.z);
+							local distance_vehicle = getDistance(wp_current.x,wp_current.z,x,z );
 
-							local finalSpeed = self.speed_override;
-							local finalAcceleration = true;
-							if traffic then
-								finalSpeed = 0;
-								veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
-								finalAcceleration = false;
-								self.nTimeToDeadLock = 10000;
+							if self.previousSpeed > self.speed_override then
+								self.speed_override = self.speed_override + math.min(1,distance_vehicle/distance_wps) * (self.previousSpeed - self.speed_override);
 							else
-								veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_ON);
+								self.speed_override = self.speed_override - math.min(1,distance_vehicle/distance_wps) * (self.speed_override - self.previousSpeed);
 							end;
+							--print("Speed override: " .. self.speed_override);
 
-							AIVehicleUtil.driveToPoint(self, dt, 1, finalAcceleration, self.bDrivingForward, xl, zl, finalSpeed, false );
-						else
-							--print("Reaching last waypoint - slowing down");
-							xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
-							AIVehicleUtil.driveToPoint(self, dt, 1, true, self.bDrivingForward, xl, zl, 5, false );
 						end;
+						if self.speed_override == -1 then self.speed_override = self.nSpeed; end;
+
+						local wp_new = nil;
+
+						if wp_new ~= nil then
+							xl,yl,zl = worldToLocal(veh.components[1].node, wp_new.x,y,wp_new.z);
+						end;
+
+						local finalSpeed = self.speed_override;
+						local finalAcceleration = true;
+						if traffic then
+							finalSpeed = 0;
+							veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
+							finalAcceleration = false;
+							self.nTimeToDeadLock = 15000;
+						else
+							veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_ON);
+						end;
+
+						AIVehicleUtil.driveToPoint(self, dt, 1, finalAcceleration, self.bDrivingForward, xl, zl, finalSpeed, false );
+					else
+						--print("Reaching last waypoint - slowing down");
+						xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
+						AIVehicleUtil.driveToPoint(self, dt, 1, true, self.bDrivingForward, xl, zl, 12, false );
 					end;
 				end;
 			end;
+		end;
+
+		if self.bPaused == true then
+			self.nTimeToDeadLock = 15000;
+			if self.isServer == true then
+				xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
+
+				AIVehicleUtil.driveToPoint(self, dt, 0, false, self.bDrivingForward, xl, zl, 0, false );
+
+				veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
+			end;
+		end;
+
 		if self.typeDesc == "combine" or self.typeDesc == "harvester" then
 			veh.aiSteeringSpeed = 1;
 		else
@@ -1892,7 +2083,7 @@ function AutoDrive:update(dt)
 				self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
 
 				self.bDeadLock = false;
-				self.nTimeToDeadLock = 10000;
+				self.nTimeToDeadLock = 15000;
 				self.bDeadLockRepairCounter = self.bDeadLockRepairCounter - 1;
 			end;
 		end;
@@ -1956,7 +2147,9 @@ function AutoDrive:update(dt)
 						local angle = AutoDrive:angleBetween( {x=x-wp_ref.x,z=z-wp_ref.z},{x=wp.x-wp_ref.x, z = wp.z - wp_ref.z } )
 						--print("Angle between: " .. angle );
 						local max_distance = 6;
-						if angle < 3 then max_distance = 20; end;
+						if angle < 1 then max_distance = 20; end;
+						if angle >= 1 and angle < 2 then max_distance = 12; end;
+						if angle >= 2 and angle < 3 then max_distance = 9; end;
 						if angle >= 3 and angle < 5 then max_distance = 6; end;
 						if angle >= 5 and angle < 8 then max_distance = 4; end;
 						if angle >= 8 and angle < 12 then max_distance = 2; end;
@@ -1989,46 +2182,59 @@ function AutoDrive:update(dt)
 		end;	
 	end;
 
-	--[[trigger test
 
-	--get trailer:
-	local trailer = nil;
-	if self.attachedImplements ~= nil then
-		for _, implement in pairs(self.attachedImplements) do
-			if implement.object ~= nil then
-				if implement.object.getCapacity ~= nil then
-					if implement.object.readCapacity ~= true then
-						--print("capacity = " .. implement.object:getCapacity());
-						implement.object.readCapacity = true;
-					end;
+	if self.bActive == true and self.bUnloadAtTrigger == true then
+		local trailer = nil;
+		if self.attachedImplements ~= nil then
+			for _, implement in pairs(self.attachedImplements) do
+				if implement.object ~= nil then
+					if implement.object.typeDesc == "tipper" then
 
-					trailer = implement.object;
-				else
-					if implement.object.addebug ~= true then
-						--print("implement has no capacity");
-						implement.object.addebug = true;
+						trailer = implement.object;
 					end;
 				end;
 			end;
+
+			--check trailer trigger: trailerTipTriggers
+			if trailer ~= nil then
+				--print("Found trailer. going through triggers");
+				for _,trigger in pairs(g_currentMission.tipTriggers) do
+
+					local allowed,minDistance,bestPoint = trigger:getTipInfoForTrailer(trailer, trailer.preferedTipReferencePointIndex);
+
+					--print("Min distance: " .. minDistance);
+
+					if allowed and minDistance == 0 then
+						if trailer.tipping ~= true then
+							--print("toggling tip state for " .. trigger.stationName .. " distance: " .. minDistance );
+							trailer:toggleTipState(trigger, bestPoint);
+							self.bPaused = true;
+							self.bUnloading = true;
+							--trailer:toggleTipState(trailer.trailerTipTriggers[1],trailer.tipReferencePoints[trailer.preferedTipReferencePointIndex]);
+							trailer.tipping = true;
+						end;
+
+					end;
+
+					if trailer.tipState == Trailer.TIPSTATE_CLOSED and self.bUnloading == true then
+						--print("trailer is unloaded. continue");
+						trailer.tipping = false;
+						self.bPaused = false;
+						self.bUnloading = false;
+					end;
+				end;
+			end;
+
 		end;
 
-		--check trailer trigger: trailerTipTriggers
-		if trailer ~= nil then
-
-			if g_currentMission.trailerInTipRange ~= nil then
-					--print("Found trigger: ");
-					--activate trigger:
-					if g_currentMission.trailerInTipRange.tipping ~= true then
-						print("toggling tp state");
-						g_currentMission.trailerInTipRange:toggleTipState(g_currentMission.currentTipTrigger, g_currentMission.currentTipReferencePointIndex);
-						--trailer:toggleTipState(trailer.trailerTipTriggers[1],trailer.tipReferencePoints[trailer.preferedTipReferencePointIndex]);
-						g_currentMission.trailerInTipRange.tipping = true;
-					end;
+		if self.bPaused == true and not self.bUnloading then
+			if trailer:getFreeCapacity() < 200 then
+				self.bPaused = false;
 			end;
 		end;
 
 	end;
-	--]]
+
 	--triger test end
 	
 	if self.isServer == true then
@@ -2127,7 +2333,30 @@ function AutoDrive:updateButtons(vehicle)
 			end;
 			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
 		end;
-		
+
+		if button.name == "input_nextTarget_Unload" then
+			if vehicle.bUnloadAtTrigger == true then
+				button.isVisible = true;
+			else
+				button.isVisible = false;
+			end;
+		end;
+		if button.name == "input_previousTarget_Unload" then
+			if vehicle.bUnloadAtTrigger == true then
+				button.isVisible = true;
+			else
+				button.isVisible = false;
+			end;
+		end;
+
+		if button.name == "input_continue" then
+			if vehicle.bUnloadAtTrigger == true then
+				button.isVisible = true;
+			else
+				button.isVisible = false;
+			end;
+		end;
+
 	end;
 
 end;
@@ -2194,6 +2423,87 @@ function AutoDrive:findClosestWayPoint(veh)
 	return closest;
 end;
 
+function AutoDrive:findMatchingWayPoint(veh)
+	--returns waypoint closest to vehicle position and with the most suited heading
+	local x1,y1,z1 = getWorldTranslation(veh.components[1].node);
+	local rx,ry,rz = localDirectionToWorld(veh.components[1].node, 0,0,1);
+	local vehicleVector = {x= math.sin(rx) ,z= math.sin(rz) };
+
+	--drawDebugLine(x1, y1+4, z1, 1,0,0, x1 + math.sin(rx)*2 , y1+4, z1 + math.sin(rz), 1,0,0);
+
+	local candidates = {};
+	local candidatesCounter = 0;
+
+	for i in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+		local dis = getDistance(g_currentMission.AutoDrive.mapWayPoints[i].x,g_currentMission.AutoDrive.mapWayPoints[i].z,x1,z1);
+		if dis < 20 and dis > 1 then
+			candidatesCounter = candidatesCounter + 1;
+			candidates[candidatesCounter] = i;
+		end;
+	end;
+
+	if candidatesCounter == 0 then
+		return AutoDrive:findClosestWayPoint(veh);
+	end;
+
+	local closest = -1;
+	local distance = -1;
+	local angle = -1;
+
+	for i,id in pairs(candidates) do
+
+		local point = g_currentMission.AutoDrive.mapWayPoints[id];
+		local nextP = -1;
+		if point.out ~= nil then
+			if point.out[1] ~= nil then
+				nextP = g_currentMission.AutoDrive.mapWayPoints[point.out[1]];
+			end;
+		end;
+		if nextP ~= -1 then
+			local tempVec = {x= nextP.x - point.x, z= nextP.z - point.z};
+			local tempVecToVehicle = { x = point.x - x1, z = point.z - z1 };
+			local tempAngle = AutoDrive:angleBetween(vehicleVector, tempVec);
+			local tempAngleToVehicle = AutoDrive:angleBetween(vehicleVector, tempVecToVehicle);
+			local dis = getDistance(point.x,point.z,x1,z1);
+
+			if closest == -1 and math.abs(tempAngle) < 60 and math.abs(tempAngleToVehicle) < 30 then
+				closest = point.id;
+				distance = dis;
+				angle = tempAngle;
+				--print("TempAngle to vehicle: " .. tempAngleToVehicle);
+			else
+				if math.abs(tempAngle) < math.abs(angle) then
+					if math.abs(tempAngleToVehicle) < 30 then
+						if math.abs(angle) < 20 then
+							if dis < distance then
+								closest = point.id;
+								distance = dis;
+								angle = tempAngle;
+								--print("TempAngle to vehicle: " .. tempAngleToVehicle);
+							end;
+						else
+							closest = point.id;
+							distance = dis;
+							angle = tempAngle;
+						end;
+					end;
+				end;
+			end;
+		end;
+
+	end;
+
+
+
+	if closest == -1 then
+		return AutoDrive:findClosestWayPoint(veh);
+	end;
+
+	--local tempVecToVehicle = { x = g_currentMission.AutoDrive.mapWayPoints[closest].x - x1, z = g_currentMission.AutoDrive.mapWayPoints[closest].z - z1 };
+	--drawDebugLine(x1, y1+4, z1, 0,0,1, x1 + tempVecToVehicle.x , y1+4, z1 + tempVecToVehicle.z, 0,0,1);
+
+	return closest;
+end;
 
 function AutoDrive:draw()
 
@@ -2235,6 +2545,15 @@ function AutoDrive:draw()
 					end;
 				end;
 
+				for markerID,marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+					local x1,y1,z1 = getWorldTranslation(self.components[1].node);
+					local x2,y2,z2 = getWorldTranslation(marker.node);
+					local distance = getDistance(x2,z2,x1,z1);
+					if distance < 50 then
+						DebugUtil.drawDebugNode(marker.node,marker.name);
+					end;
+				end;
+
 				if self.bShowDebugMapMarker == true then
 					local closest = AutoDrive:findClosestWayPoint(self);
 					local x1,y1,z1 = getWorldTranslation(self.components[1].node);
@@ -2248,7 +2567,10 @@ function AutoDrive:draw()
 					if self.bCreateMapMarker == true and self.bEnteringMapMarker == false then
 
 						g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
-						g_currentMission.AutoDrive.mapMarker[g_currentMission.AutoDrive.mapMarkerCounter] = {id=closest, name= self.sEnteredMapMarkerString};
+						local node = createTransformGroup(self.sEnteredMapMarkerString);
+						setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[closest].x, g_currentMission.AutoDrive.mapWayPoints[closest].y + 4 , g_currentMission.AutoDrive.mapWayPoints[closest].z  );
+
+						g_currentMission.AutoDrive.mapMarker[g_currentMission.AutoDrive.mapMarkerCounter] = {id=closest, name= self.sEnteredMapMarkerString, node=node};
 						self.bCreateMapMarker = false;
 						self.printMessage = g_i18n:getText("AD_Debug_waypoint_created_1") .. closest .. g_i18n:getText("AD_Debug_waypoint_created_2");
 						self.nPrintTime = 30000;
@@ -2259,6 +2581,8 @@ function AutoDrive:draw()
 
 
 					end;
+
+
 
 
 					if self.bShowSelectedDebugPoint == true then
@@ -2378,13 +2702,16 @@ function AutoDrive:drawHud(vehicle)
 		local borderX = 0.008;
 		local borderY = 0.005;
 		
-		local buttonWidth = 0.04;
-		local buttonHeight = 0.04;
+		local buttonWidth = 0.02;
+		local buttonHeight = 0.02;
 		
 		local ovWidth = AutoDrive.Hud.Background.width;
 		local ovHeight = AutoDrive.Hud.Background.height;
 		if vehicle.bEnteringMapMarker == true then
 			ovHeight = ovHeight + 0.08;
+		end;
+		if vehicle.bUnloadAtTrigger == true then
+			ovHeight = ovHeight + 0.03;
 		end;
 		
 		local buttonCounter = 0;
@@ -2409,16 +2736,13 @@ function AutoDrive:drawHud(vehicle)
 			end;
 		end;
 		
-		
-		
-		
-		
 		if vehicle.sTargetSelected ~= nil then
-			
-		
 			local adFontSize = 0.014;
 			local adPosX = AutoDrive.Hud.posX + 0.005 + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
 			local adPosY = AutoDrive.Hud.posY + 0.005 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
+			if vehicle.bUnloadAtTrigger == true then
+				adPosY = adPosY + 0.03;
+			end;
 			setTextColor(1,1,1,1);
 			renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
 			renderText(AutoDrive.Hud.posX - 0.02 + AutoDrive.Hud.width, adPosY, adFontSize, "" .. vehicle.nSpeed);
@@ -2442,6 +2766,14 @@ function AutoDrive:drawHud(vehicle)
 			setTextColor(1,1,1,1);
 			renderText(adPosX, adPosY + 0.03, adFontSize, g_i18n:getText("AD_new_marker_helptext"));
 			renderText(adPosX, adPosY, adFontSize, g_i18n:getText("AD_new_marker") .. " " .. vehicle.sEnteredMapMarkerString);
+		end;
+
+		if vehicle.bUnloadAtTrigger == true then
+			local adFontSize = 0.014;
+			local adPosX = AutoDrive.Hud.posX + 0.005 + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
+			local adPosY = AutoDrive.Hud.posY + 0.005 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
+			setTextColor(1,1,1,1);
+			renderText(adPosX, adPosY, adFontSize, g_i18n:getText("AD_intermediate") .. " " .. vehicle.sTargetSelected_Unload);
 		end;
 
 		
@@ -2498,7 +2830,7 @@ function AutoDrive:removeMapWayPoint(del)
 		
 		--adjust ids for all succesive nodes :(
 		
-		local deleted = true;
+		local deleted = false;
 		for _,node in pairs(g_currentMission.AutoDrive.mapWayPoints) do
 			if _ > del.id then
 				local oldID = node.id;				
@@ -2524,11 +2856,17 @@ function AutoDrive:removeMapWayPoint(del)
 				node.id = node.id - 1;
 				
 				if g_currentMission.AutoDrive.mapWayPoints[_ + 1] == nil then
+					deleted = true;
 					g_currentMission.AutoDrive.mapWayPoints[_] = nil;
 					g_currentMission.AutoDrive.mapWayPointsCounter = g_currentMission.AutoDrive.mapWayPointsCounter - 1;
 				end;
 				
 			end;
+		end;
+		--must have been last added waypoint that got deleted. handle this here:
+		if deleted == false then
+			g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter] = nil;
+			g_currentMission.AutoDrive.mapWayPointsCounter = g_currentMission.AutoDrive.mapWayPointsCounter - 1;
 		end;
 		
 		--adjust all mapmarkers
@@ -2620,6 +2958,13 @@ function AutoDrive:detectTraffic(vehicle, wp_next)
 			for _i,impl in pairs(vehicle.attachedImplements) do
 				if impl.object ~= nil then
 					if impl.object == other then isAttachedToMe = true; end;
+
+					if impl.object.attachedImplements ~= nil then
+
+						for _, implement in pairs(impl.object.attachedImplements) do
+							if implement.object == other then isAttachedToMe = true; end;
+						end;
+					end;
 				end;
 			end;
 			if isAttachedToMe == false then
@@ -2748,6 +3093,264 @@ function AutoDrive:BoxesIntersect(a,b)
 		--print("polygons intersect!");
 		return true;
 
+end
+
+function AutoDrive:ExportRoutes()
+
+	AutoDrive.adExportSaveFolderPath = getUserProfileAppPath() .. 'autoDriveExport';
+	createFolder(AutoDrive.adExportSaveFolderPath);
+	AutoDrive.adImportSaveFolderPath = getUserProfileAppPath() .. 'autoDriveImport';
+	createFolder(AutoDrive.adImportSaveFolderPath);
+
+	local exportFile = AutoDrive.adExportSaveFolderPath  .. "/AutoDrive_export.xml";
+
+	print("AD: creating xml file at " .. exportFile);
+	local exportXml = createXMLFile("AutoDrive_XML", exportFile, "AutoDrive");
+
+	saveXMLFile(exportXml);
+
+	setXMLString(exportXml, "AutoDrive.Version", AutoDrive.Version);
+	if g_currentMission.AutoDrive.handledRecalculation ~= true then
+		setXMLString(exportXml, "AutoDrive.Recalculation", "true");
+		print("AD: Set to recalculating routes");
+	else
+		setXMLString(exportXml, "AutoDrive.Recalculation", "false");
+		print("AD: Set to not recalculating routes");
+	end;
+
+	local idFullTable = {};
+	local idString = "";
+
+	local xTable = {};
+	local xString = "";
+
+	local yTable = {};
+	local yString = "";
+
+	local zTable = {};
+	local zString = "";
+
+	local outTable = {};
+	local outString = "";
+
+	local incomingTable = {};
+	local incomingString = "";
+
+	local out_costTable = {};
+	local out_costString = "";
+
+	local markerNamesTable = {};
+	local markerNames = "";
+
+	local markerIDsTable = {};
+	local markerIDs = "";
+
+	for i,p in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+
+		--idString = idString .. p.id .. ",";
+		idFullTable[i] = p.id;
+		--xString = xString .. p.x .. ",";
+		xTable[i] = p.x;
+		--yString = yString .. p.y .. ",";
+		yTable[i] = p.y;
+		--zString = zString .. p.z .. ",";
+		zTable[i] = p.z;
+
+		--outString = outString .. table.concat(p.out, ",") .. ";";
+		outTable[i] = table.concat(p.out, ",");
+
+		local innerIncomingTable = {};
+		local innerIncomingCounter = 1;
+		for i2, p2 in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+			for i3, out2 in pairs(p2.out) do
+				if out2 == p.id then
+					innerIncomingTable[innerIncomingCounter] = p2.id;
+					innerIncomingCounter = innerIncomingCounter + 1;
+					--incomingString = incomingString .. p2.id .. ",";
+				end;
+			end;
+		end;
+		incomingTable[i] = table.concat(innerIncomingTable, ",");
+		--incomingString = incomingString .. ";";
+
+		out_costTable[i] = table.concat(p.out_cost, ",");
+		--out_costString = out_costString .. table.concat(p.out_cost, ",") .. ";";
+
+		local markerCounter = 1;
+		local innerMarkerNamesTable = {};
+		local innerMarkerIDsTable = {};
+		for i2,marker in pairs(p.marker) do
+			innerMarkerIDsTable[markerCounter] = marker;
+			--markerIDs = markerIDs .. marker .. ",";
+			innerMarkerNamesTable[markerCounter] = i2;
+			--markerNames = markerNames .. i2 .. ",";
+			markerCounter = markerCounter + 1;
+		end;
+		markerNamesTable[i] = table.concat(innerMarkerNamesTable, ",");
+		markerIDsTable[i] = table.concat(innerMarkerIDsTable, ",");
+
+		--markerIDs = markerIDs .. ";";
+		--markerNames = markerNames .. ";";
+	end;
+
+	if idFullTable[1] ~= nil then
+
+		setXMLString(exportXml, "AutoDrive.waypoints.id" , table.concat(idFullTable, ",") );
+		setXMLString(exportXml, "AutoDrive.waypoints.x" , table.concat(xTable, ","));
+		setXMLString(exportXml, "AutoDrive.waypoints.y" , table.concat(yTable, ","));
+		setXMLString(exportXml, "AutoDrive.waypoints.z" , table.concat(zTable, ","));
+		setXMLString(exportXml, "AutoDrive.waypoints.out" , table.concat(outTable, ";"));
+		setXMLString(exportXml, "AutoDrive.waypoints.incoming" , table.concat(incomingTable, ";") );
+		setXMLString(exportXml, "AutoDrive.waypoints.out_cost" , table.concat(out_costTable, ";"));
+		if markerIDsTable[1] ~= nil then
+			setXMLString(exportXml, "AutoDrive.waypoints.markerID" , table.concat(markerIDsTable, ";"));
+			setXMLString(exportXml, "AutoDrive.waypoints.markerNames" , table.concat(markerNamesTable, ";"));
+		end;
+	end;
+
+	for i in pairs(g_currentMission.AutoDrive.mapMarker) do
+
+		setXMLFloat(exportXml, "AutoDrive.mapmarker.mm".. i ..".id", g_currentMission.AutoDrive.mapMarker[i].id);
+		setXMLString(exportXml, "AutoDrive.mapmarker.mm".. i ..".name", g_currentMission.AutoDrive.mapMarker[i].name);
+
+	end;
+
+	saveXMLFile(exportXml);
+
+
+end;
+
+function AutoDrive:ImportRoutes()
+	
+	AutoDrive.adImportSaveFolderPath = getUserProfileAppPath() .. 'autoDriveImport';
+
+	local importFile = AutoDrive.adImportSaveFolderPath  .. "/AutoDrive_export.xml";
+
+	local importXml = nil;
+	if fileExists(importFile) then
+		print("AD: Importing xml file from " .. importFile);
+		importXml = loadXMLFile("AutoDrive_XML", importFile);
+
+		local idString = getXMLString(importXml, "AutoDrive.waypoints.id");
+		local idTable = Utils.splitString("," , idString);
+		local xString = getXMLString(importXml, "AutoDrive.waypoints.x");
+		local xTable = Utils.splitString("," , xString);
+		local yString = getXMLString(importXml, "AutoDrive.waypoints.y");
+		local yTable = Utils.splitString("," ,yString);
+		local zString = getXMLString(importXml, "AutoDrive.waypoints.z");
+		local zTable = Utils.splitString("," , zString);
+
+		local outString = getXMLString(importXml, "AutoDrive.waypoints.out");
+		local outTable = Utils.splitString(";" , outString);
+		local outSplitted = {};
+		for i, outer in pairs(outTable) do
+			local out = Utils.splitString("," , outer);
+			outSplitted[i] = out;
+		end;
+
+		local incomingString = getXMLString(importXml, "AutoDrive.waypoints.incoming");
+		local incomingTable = Utils.splitString(";" , incomingString);
+		local incomingSplitted = {};
+		for i, outer in pairs(incomingTable) do
+			local incoming = Utils.splitString("," , outer);
+			incomingSplitted[i] = incoming;
+		end;
+
+		local out_costString = getXMLString(importXml, "AutoDrive.waypoints.out_cost");
+		local out_costTable = Utils.splitString(";" , out_costString);
+		local out_costSplitted = {};
+		for i, outer in pairs(out_costTable) do
+			local out_cost = Utils.splitString("," , outer);
+			out_costSplitted[i] = out_cost;
+		end;
+
+		local markerIDString = getXMLString(importXml, "AutoDrive.waypoints.markerID");
+		local markerIDTable = Utils.splitString(";" , markerIDString);
+		local markerIDSplitted = {};
+		for i, outer in pairs(markerIDTable) do
+			local markerID = Utils.splitString("," , outer);
+			markerIDSplitted[i] = markerID;
+		end;
+
+		local markerNamesString = getXMLString(importXml, "AutoDrive.waypoints.markerNames");
+		local markerNamesTable = Utils.splitString(";" , markerNamesString);
+		local markerNamesSplitted = {};
+		for i, outer in pairs(markerNamesTable) do
+			local markerNames = Utils.splitString("," , outer);
+			markerNamesSplitted[i] = markerNames;
+		end;
+
+		local wp_counter = 0;
+		for i, id in pairs(idTable) do
+			if id ~= "" then
+				wp_counter = wp_counter +1;
+				local wp = {};
+				wp["id"] = tonumber(id);
+				wp["out"] = {};
+				for i2,outString in pairs(outSplitted[i]) do
+					wp["out"][i2] = tonumber(outString);
+				end;
+
+				wp["incoming"] = {};
+				local incoming_counter = 1;
+				for i2, incomingID in pairs(incomingSplitted[i]) do
+					if incomingID ~= "" then
+						wp["incoming"][incoming_counter] = tonumber(incomingID);
+					end;
+					incoming_counter = incoming_counter +1;
+				end;
+
+				wp["out_cost"] = {};
+				for i2,out_costString in pairs(out_costSplitted[i]) do
+					wp["out_cost"][i2] = tonumber(out_costString);
+				end;
+
+				wp["marker"] = {};
+				for i2, markerName in pairs(markerNamesSplitted[i]) do
+					if markerName ~= "" then
+						wp.marker[markerName] = tonumber(markerIDSplitted[i][i2]);
+					end;
+				end;
+				wp.x = tonumber(xTable[i]);
+				wp.y = tonumber(yTable[i]);
+				wp.z = tonumber(zTable[i]);
+
+				g_currentMission.AutoDrive.mapWayPoints[wp_counter] = wp;
+			end;
+
+		end;
+
+		if g_currentMission.AutoDrive.mapWayPoints[wp_counter] ~= nil then
+			print("AD: Loaded Waypoints: " .. wp_counter);
+			g_currentMission.AutoDrive.mapWayPointsCounter = wp_counter;
+		else
+			g_currentMission.AutoDrive.mapWayPointsCounter = 0;
+		end;
+
+		local mapMarker = {};
+		local mapMarkerCounter = 1;
+		mapMarker.name = getXMLString(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".name");
+
+		while mapMarker.name ~= nil do
+			--print("Loading map marker: " .. mapMarker.name);
+			mapMarker.id = getXMLFloat(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".id");
+
+			local node = createTransformGroup(mapMarker.name);
+			setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].x, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].y + 4 , g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].z  );
+			mapMarker.node = node;
+
+			g_currentMission.AutoDrive.mapMarker[mapMarkerCounter] = mapMarker;
+			mapMarker = nil;
+			mapMarker = {};
+			mapMarkerCounter = mapMarkerCounter + 1;
+			g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
+			mapMarker.name = getXMLString(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".name");
+		end;
+		
+	else
+		print("AD: Import File does not exist: " .. importFile);
+	end;
+	
 end
 
 addModEventListener(AutoDrive);
