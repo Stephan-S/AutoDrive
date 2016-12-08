@@ -790,17 +790,30 @@ function AutoDrive:InputHandling(vehicle, input)
 		--if vehicle == g_currentMission.controlledVehicle then
 			--print("Executing InputHandling with input: " .. input);
 			--print("correct vehicle");
-			if input == "input_silomode" and g_dedicatedServerInfo == nil and g_server ~= nil then
+			if input == "input_silomode" then
 				--DebugUtil.printTableRecursively(g_currentMission.nodeToVehicle, ":",0,3);
 
 				if vehicle.bTargetMode == true and vehicle.bUnloadAtTrigger == false then
-					vehicle.bReverseTrack = true;
-					vehicle.bDrivingForward = true;
-					vehicle.bTargetMode = false;
-					vehicle.bRoundTrip = false;
-					vehicle.savedSpeed = vehicle.nSpeed;
-					vehicle.nSpeed = 15;
-					vehicle.bUnloadAtTrigger = false;
+					if g_server ~= nil and g_dedicatedServerInfo == nil then
+						vehicle.bReverseTrack = true;
+						vehicle.bDrivingForward = true;
+						vehicle.bTargetMode = false;
+						vehicle.bRoundTrip = false;
+						vehicle.savedSpeed = vehicle.nSpeed;
+						vehicle.nSpeed = 15;
+						vehicle.bUnloadAtTrigger = false;
+					else
+						vehicle.bReverseTrack = false;
+						vehicle.bDrivingForward = true;
+						vehicle.bTargetMode = true;
+						vehicle.bRoundTrip = false;
+						vehicle.bUnloadAtTrigger = true;
+
+						if vehicle.savedSpeed ~= nil then
+							vehicle.nSpeed = vehicle.savedSpeed;
+							vehicle.savedSpeed = nil;
+						end;
+					end;
 				else
 					if vehicle.bReverseTrack == true then
 						vehicle.bReverseTrack = false;
@@ -1636,6 +1649,7 @@ function init(self)
 	self.bUnloadSwitch = false;
 	self.unloadType = -1;
 	self.bLoading = false;
+	self.trailertipping = -1;
 
 	g_currentMission.AutoDrive.Recalculation = {};
 
@@ -2417,7 +2431,7 @@ function AutoDrive:update(dt)
 							local allowed,minDistance,bestPoint = trigger:getTipInfoForTrailer(trailer, trailer.preferedTipReferencePointIndex);
 							--print("Min distance: " .. minDistance);
 							if allowed and minDistance == 0 then
-								if trailer.tipping ~= true then
+								if trailer.tipping ~= true  then
 									--print("toggling tip state for " .. trigger.stationName .. " distance: " .. minDistance );
 									trailer:toggleTipState(trigger, bestPoint);
 									self.bPaused = true;
@@ -2431,14 +2445,14 @@ function AutoDrive:update(dt)
 								trailer.tipping = false;
 							end;
 
-							if trailer.tipping == true then
+							if trailer.tipping == true or self.bPaused == false then
 								globalUnload = true;
 							end;
 
 						end;
 					end;
 				end;
-				if globalUnload == false and self.bUnloading == true then
+				if (globalUnload == false and self.bUnloading == true) or self.bPaused == false then
 					self.bPaused = false;
 					self.bUnloading = false;
 				end;
@@ -2459,12 +2473,12 @@ function AutoDrive:update(dt)
 
 							local valid = trigger:getIsValidTrailer(trailer);
 							local level = trigger:getFillLevel(self.unloadType);
-							local activatable = trigger:getIsActivatable()
+							local activatable = trigger.activeTriggers >=4 --trigger:getIsActivatable()
 							local correctTrailer = false;
 							if trigger.siloTrailer == trailer then correctTrailer = true; end;
 
 							--print("valid: " .. tostring(valid) .. " level: " ..  tostring(level) .. " activatable: " .. tostring(activatable) .. " correctTrailer: " .. tostring(correctTrailer) );
-							if valid and level > 0 and activatable and correctTrailer and trailer.bLoading ~= true then
+							if valid and level > 0 and activatable and correctTrailer and trailer.bLoading ~= true then --
 								if	trailer:getFreeCapacity() > 1 then
 									--print("Starting to unload into trailer" );
 									trigger:startFill(self.unloadType);
@@ -2474,7 +2488,7 @@ function AutoDrive:update(dt)
 								end;
 							end;
 
-							if trailer:getFreeCapacity(self.unloadType) <= 0 and trailer.bLoading == true and correctTrailer == true then
+							if (trailer:getFreeCapacity(self.unloadType) <= 0 or self.bPaused == false) and trailer.bLoading == true and correctTrailer == true then
 								--print("trailer is full. continue");
 								trigger:stopFill();
 								trailer.bLoading = false;
@@ -2487,7 +2501,7 @@ function AutoDrive:update(dt)
 						end;
 					end;
 				end;
-				if globalLoading == false and self.bLoading == true then
+				if (globalLoading == false and self.bLoading == true) or self.bPaused == false then
 					self.bPaused = false;
 					self.bLoading = false;
 				end;
@@ -3886,6 +3900,18 @@ function AutoDriveInputEvent:new(vehicle)
 	self.sEnteredMapMarkerString =  vehicle.sEnteredMapMarkerString;
 	self.currentInput = vehicle.currentInput;
 
+	self.bUnloadAtTrigger = vehicle.bUnloadAtTrigger;
+	self.bUnloading = vehicle.bUnloading;
+	self.bPaused = vehicle.bPaused;
+	self.bUnloadSwitch = vehicle.bUnloadSwitch;
+	self.unloadType = vehicle.unloadType;
+	self.bLoading = vehicle.bLoading;
+	self.trailertipping = vehicle.trailertipping;
+
+	self.ntargetSelected_Unload = vehicle.ntargetSelected_Unload;
+	self.nMapMarkerSelected_Unload = vehicle.nMapMarkerSelected_Unload;
+	self.sTargetSelected_Unload = vehicle.sTargetSelected_Unload;
+
 	
 	--print("event new")
     return self;
@@ -3954,6 +3980,19 @@ function AutoDriveInputEvent:writeStream(streamId, connection)
 	streamWriteBool(streamId, self.bEnteringMapMarker);
 	streamWriteString(streamId, self.sEnteredMapMarkerString);
 	streamWriteString(streamId, self.currentInput);
+
+	streamWriteBool(streamId, self.bUnloadAtTrigger);
+	streamWriteBool(streamId, self.bUnloading);
+	streamWriteBool(streamId, self.bPaused);
+	streamWriteBool(streamId, self.bUnloadSwitch);
+	streamWriteFloat32(streamId, self.unloadType);
+	streamWriteBool(streamId, self.bLoading);
+	streamWriteFloat32(streamId, self.trailertipping);
+
+	streamWriteFloat32(streamId, self.ntargetSelected_Unload);
+	streamWriteFloat32(streamId, self.nMapMarkerSelected_Unload);
+	streamWriteString(streamId, self.sTargetSelected_Unload);
+
 	-- print("event writeStream")
 end;
 
@@ -4014,6 +4053,18 @@ function AutoDriveInputEvent:readStream(streamId, connection)
 	local sEnteredMapMarkerString = streamReadString(streamId);
 	local currentInput = streamReadString(streamId);
 
+	local bUnloadAtTrigger = streamReadBool(streamId);
+	local bUnloading = streamReadBool(streamId);
+	local bPaused = streamReadBool(streamId);
+	local bUnload = streamReadBool(streamId);
+	local unloadType = streamReadFloat32(streamId);
+	local bLoading = streamReadBool(streamId);
+	local trailertipping = streamReadFloat32(streamId);
+
+	local ntargetSelected_Unload = streamReadFloat32(streamId);
+	local nMapMarkerSelected_Unload = streamReadFloat32(streamId);
+	local sTargetSelected_Unload = streamReadString(streamId);
+
 	if g_server ~= nil then
 		vehicle.currentInput = currentInput;
 	else
@@ -4024,7 +4075,9 @@ function AutoDriveInputEvent:readStream(streamId, connection)
 		vehicle.nTargetX = nTargetX ;
 		vehicle.nTargetZ = nTargetZ;
 		vehicle.bInitialized = bInitialized;
-		vehicle.ad.wayPoints = wayPoints ;
+		if vehicle.ad ~= nil then
+			vehicle.ad.wayPoints = wayPoints ;
+		end;
 		vehicle.bcreateMode = bcreateMode;
 		vehicle.nCurrentWayPoint = nCurrentWayPoint ;
 		vehicle.nlastLogged = nlastLogged;
@@ -4051,9 +4104,20 @@ function AutoDriveInputEvent:readStream(streamId, connection)
 		vehicle.bDeadLockRepairCounter = bDeadLockRepairCounter;
 		vehicle.bCreateMapMarker = bCreateMapMarker;
 		vehicle.bEnteringMapMarker = bEnteringMapMarker;
-		vehicle.sEnteredMapMarkerString = sEnteredMapMarkerString
+		vehicle.sEnteredMapMarkerString = sEnteredMapMarkerString;
 
+		vehicle.bUnloadAtTrigger = bUnloadAtTrigger;
+		vehicle.bUnloading = bUnloading;
+		vehicle.bPaused = bPaused;
+		vehicle.bUnload = bUnload;
+		vehicle.unloadType = unloadType;
+		vehicle.bLoading = bLoading;
+		vehicle.trailertipping = trailertipping;
 
+		vehicle.ntargetSelected_Unload = ntargetSelected_Unload;
+		vehicle.nMapMarkerSelected_Unload = nMapMarkerSelected_Unload;
+		vehicle.sTargetSelected_Unload = sTargetSelected_Unload;
+		
 	end;
 
 
@@ -4319,6 +4383,12 @@ function AutoDriveMapEvent:readStream(streamId, connection)
 				local markerId = streamReadFloat32(streamId);
 				local markerName = streamReadString(streamId);
 				local marker = {};
+
+				local node = createTransformGroup(markerName);
+				setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[markerId].x, g_currentMission.AutoDrive.mapWayPoints[markerId].y + 4 , g_currentMission.AutoDrive.mapWayPoints[markerId].z  );
+
+				marker.node=node;
+
 				marker.id = markerId;
 				marker.name = markerName;
 
