@@ -15,7 +15,7 @@
 ]]>
 	   </de>
 	</description>
-    <version>0.8.5</version>
+    <version>1.0</version>
 	<multiplayer supported="true"/>   
 	<iconFilename>store.dds</iconFilename>
     <extraSourceFiles>
@@ -188,8 +188,8 @@
 		<input name="ADEnDisable" 						category="VEHICLE" key1="KEY_lctrl KEY_down"   			key2="" button="" device="0" mouse="" />
 		<input name="ADSelectTarget" 					category="VEHICLE" key1="KEY_lalt KEY_right"   			key2="" button="" device="0" mouse="" />
 		<input name="ADSelectPreviousTarget" 			category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
-		<input name="ADSelectTargetMouseWheel" 			category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="MOUSE_BUTTON_WHEEL_DOWN" />
-		<input name="ADSelectPreviousTargetMouseWheel" 	category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="MOUSE_BUTTON_WHEEL_UP" />
+		<input name="ADSelectTargetMouseWheel" 			category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
+		<input name="ADSelectPreviousTargetMouseWheel" 	category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
 		<input name="AD_Speed_up" 						category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
 		<input name="AD_Speed_down" 					category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
 		<input name="AD_export_routes" 					category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
