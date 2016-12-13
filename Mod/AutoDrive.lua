@@ -688,26 +688,26 @@ function AutoDrive:loadHud()
 	AutoDrive.Hud.Background.img = result;
 	--]]
 
-	AutoDrive:AddButton("input_start_stop", "on.dds", "off.dds", false, true);
-	AutoDrive:AddButton("input_previousTarget", "previousTarget.dds", "previousTarget.dds", true, true);
-	AutoDrive:AddButton("input_nextTarget", "nextTarget.dds", "nextTarget.dds", true, true);
-	AutoDrive:AddButton("input_record", "record_on.dds", "record_off.dds", false, true);
-	AutoDrive:AddButton("input_silomode", "silomode_on.dds", "silomode_off.dds", false, true);
-	AutoDrive:AddButton("input_decreaseSpeed", "decreaseSpeed.dds", "decreaseSpeed.dds", true, true);
-	AutoDrive:AddButton("input_increaseSpeed", "increaseSpeed.dds", "increaseSpeed.dds", true, true);
-	AutoDrive:AddButton("input_continue", "continue.dds", "continue.dds", true, true);
-	AutoDrive:AddButton("input_debug", "debug_on.dds", "debug_off.dds", false, true);
+	AutoDrive:AddButton("input_start_stop", "on.dds", "off.dds", "input_ADEnDisable", false, true);
+	AutoDrive:AddButton("input_previousTarget", "previousTarget.dds", "previousTarget.dds", "input_ADSelectPreviousTarget", true, true);
+	AutoDrive:AddButton("input_nextTarget", "nextTarget.dds", "nextTarget.dds","input_ADSelectTarget", true, true);
+	AutoDrive:AddButton("input_record", "record_on.dds", "record_off.dds","input_ADRecord", false, true);
+	AutoDrive:AddButton("input_silomode", "silomode_on.dds", "silomode_off.dds","input_ADSilomode", false, true);
+	AutoDrive:AddButton("input_decreaseSpeed", "decreaseSpeed.dds", "decreaseSpeed.dds","input_AD_Speed_down", true, true);
+	AutoDrive:AddButton("input_increaseSpeed", "increaseSpeed.dds", "increaseSpeed.dds","input_AD_Speed_up", true, true);
+	AutoDrive:AddButton("input_continue", "continue.dds", "continue.dds","input_AD_continue", true, true);
+	AutoDrive:AddButton("input_debug", "debug_on.dds", "debug_off.dds","input_ADActivateDebug", false, true);
 
 	--AutoDrive:AddButton("input_showClosest", "showClosest_on.dds", "showClosest_off.dds", false, false);
-	AutoDrive:AddButton("input_recalculate", "recalculate.dds", "recalculate_on.dds", true, false);
-	AutoDrive:AddButton("input_previousTarget_Unload", "previousTarget_Unload.dds", "previousTarget_Unload.dds", true, true);
-	AutoDrive:AddButton("input_nextTarget_Unload", "nextTarget_Unload.dds", "nextTarget_Unload.dds", true, true);
-	AutoDrive:AddButton("input_showNeighbor", "showNeighbor_on.dds", "showNeighbor_off.dds", false, false);
-	AutoDrive:AddButton("input_nextNeighbor", "nextNeighbor.dds", "nextNeighbor.dds", true, false);
-	AutoDrive:AddButton("input_toggleConnection", "toggleConnection.dds", "toggleConnection.dds", true, false);
-	AutoDrive:AddButton("input_createMapMarker", "createMapMarker.dds", "createMapMarker.dds", true, false);
-	AutoDrive:AddButton("input_removeWaypoint", "deleteWaypoint.dds", "deleteWaypoint.dds", true, false);
-	AutoDrive:AddButton("input_exportRoutes", "save_symbol.dds", "save_symbol.dds", true, false);
+	AutoDrive:AddButton("input_recalculate", "recalculate.dds", "recalculate_on.dds","input_ADDebugForceUpdate", true, false);
+	AutoDrive:AddButton("input_previousTarget_Unload", "previousTarget_Unload.dds", "previousTarget_Unload.dds", "input_ADSelectTargetUnload", true, true);
+	AutoDrive:AddButton("input_nextTarget_Unload", "nextTarget_Unload.dds", "nextTarget_Unload.dds","input_ADSelectPreviousTargetUnload", true, true);
+	AutoDrive:AddButton("input_showNeighbor", "showNeighbor_on.dds", "showNeighbor_off.dds","input_ADDebugSelectNeighbor", false, false);
+	AutoDrive:AddButton("input_nextNeighbor", "nextNeighbor.dds", "nextNeighbor.dds","input_ADDebugChangeNeighbor", true, false);
+	AutoDrive:AddButton("input_toggleConnection", "toggleConnection.dds", "toggleConnection.dds","input_ADDebugCreateConnection", true, false);
+	AutoDrive:AddButton("input_createMapMarker", "createMapMarker.dds", "createMapMarker.dds","input_ADDebugCreateMapMarker", true, false);
+	AutoDrive:AddButton("input_removeWaypoint", "deleteWaypoint.dds", "deleteWaypoint.dds","input_ADDebugDeleteWayPoint", true, false);
+	AutoDrive:AddButton("input_exportRoutes", "save_symbol.dds", "save_symbol.dds","input_AD_export_routes", true, false);
 	--AutoDrive:AddButton("input_toggleHud", "close.dds", "close.dds", true, true);
 	
 
@@ -718,7 +718,7 @@ function AutoDrive:loadHud()
 
 end;
 
-function AutoDrive:AddButton(name, img, img2, on, visible)
+function AutoDrive:AddButton(name, img, img2, toolTip, on, visible)
 	
 	AutoDrive.Hud.buttonCounter = AutoDrive.Hud.buttonCounter + 1;	
 	AutoDrive.Hud.colCurrent = AutoDrive.Hud.buttonCounter % AutoDrive.Hud.cols;
@@ -740,6 +740,7 @@ function AutoDrive:AddButton(name, img, img2, on, visible)
 	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].name = name;
 	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_on = result;
 	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].isVisible = visible;
+	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].toolTip = string.sub(g_i18n:getText(toolTip),4,string.len(g_i18n:getText(toolTip)))
 	
 	if img2 ~= nil then 
 		buttonImg = Utils.getNoNil("img/" .. img2, "empty.dds" )
@@ -791,7 +792,9 @@ function AutoDrive:InputHandling(vehicle, input)
 			--print("Executing InputHandling with input: " .. input);
 			--print("correct vehicle");
 			if input == "input_silomode" then
-				--DebugUtil.printTableRecursively(g_currentMission.nodeToVehicle, ":",0,3);
+
+				--DebugUtil.printTableRecursively(vehicle.frontloaderAttacher, ":",0,5);
+				--DebugUtil.printTableRecursively(vehicle.attachedImplements, ":",0,5);
 
 				if vehicle.bTargetMode == true and vehicle.bUnloadAtTrigger == false then
 					if g_server ~= nil and g_dedicatedServerInfo == nil then
@@ -1175,11 +1178,11 @@ function AutoDrive:InputHandling(vehicle, input)
 			end;
 
 			if input == "input_increaseSpeed" then
-				if vehicle.nSpeed < 50 then
+				if vehicle.nSpeed < 100 then
 					vehicle.nSpeed = vehicle.nSpeed + 1;
 
 				else
-					vehicle.nSpeed = 40;
+					--vehicle.nSpeed = 40;
 				end;
 				--vehicle.printMessage = g_i18n:getText("AD_Speed_set_to") .. " " .. vehicle.nSpeed;
 				--vehicle.nPrintTime = 2000;
@@ -1187,11 +1190,11 @@ function AutoDrive:InputHandling(vehicle, input)
 			end;
 
 			if input == "input_decreaseSpeed" then
-				if vehicle.nSpeed > 5 then
+				if vehicle.nSpeed > 2 then
 					vehicle.nSpeed = vehicle.nSpeed - 1;
 
 				else
-					vehicle.nSpeed = 5;
+					--vehicle.nSpeed = 5;
 				end;
 				--vehicle.printMessage = g_i18n:getText("AD_Speed_set_to") .. " " .. vehicle.nSpeed;
 				--vehicle.nPrintTime = 2000;
@@ -1301,6 +1304,14 @@ function AutoDrive:InputHandling(vehicle, input)
 		if input == "input_continue" then
 			if vehicle.bPaused == true then
 				vehicle.bPaused = false;
+			end;
+		end;
+
+		if input == "input_frontLoaderCam" then
+			if vehicle.ad.cam == false then
+				vehicle.ad.cam = true;
+			else
+				vehicle.ad.cam = false;
 			end;
 		end;
 	end;
@@ -1666,6 +1677,11 @@ function init(self)
 		end;
 	end;
 
+	self.nPauseTimer = 5000;
+	self.ad.nToolTipWait = 300;
+	self.ad.nToolTipTimer = 6000;
+	self.ad.sToolTip = "";
+
 	--init traffic detection:
 	--[[
 	self.coliTrigger = AutoDrive.adOnTrafficCollisionTrigger;
@@ -1678,6 +1694,43 @@ function init(self)
 	end;
 	--]]
 
+	if self.frontloaderAttacher ~= nil or self.typeDesc == "telehandler" then
+		if self.frontLoaderCam == nil then
+			self.frontLoaderCam = createCamera("frontLoaderCam",  60, 0.02, 200);
+			local node = self.components[1].node -- self.frontloaderAttacher.attacherJoint.rootNode;
+			local nodeTool = nil;
+			for _,impl in pairs(self.attachedImplements) do
+				if impl.object ~= nil then
+					if impl.object.typeName == "attachableFrontloader" then
+						--print("Selected frontloader attachment as root node");
+						nodeTool = impl.object.attacherJoints[1].jointTransform;
+					end;
+				end;
+			end;
+			if self.typeDesc == "telehandler" then
+				nodeTool = self.attacherJoints[1].jointTransform;
+			end;
+			if nodeTool == nil then
+				nodeTool = node;
+			end;
+
+			link(node, self.frontLoaderCam);
+			rotate(self.frontLoaderCam,0,math.pi*0.84,0);
+
+			local xW,yW,zW = getWorldTranslation(node);
+			local xTool,yTool,zTool = getWorldTranslation(nodeTool);
+			local xCam,yCam,zCam = getWorldTranslation(self.frontLoaderCam);
+
+			self.frontLoaderCamOffsetX = self.sizeWidth/2; -- + 0.8;
+			self.frontLoaderCamOffsetZ = self.sizeLength/2 + 1.0; -- -1.0
+			--DebugUtil.drawDebugNode(node, "node");
+			local x,y,z = worldToLocal(node,xW+self.frontLoaderCamOffsetX,yTool+0.5,zW+self.frontLoaderCamOffsetZ) --+self.ad.frontLoaderCamShift
+			setTranslation(self.frontLoaderCam,x,y,z);
+			--rotate(self.frontLoaderCam,self.ad.frontLoaderCamShiftAngle ,-self.ad.frontLoaderCamShiftSide,0);
+			--setCamera(self.frontLoaderCam);
+			self.ad.cam = false;
+		end;
+	end;
 
 end;
 
@@ -1723,7 +1776,24 @@ end;
 
 function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
 	if self == g_currentMission.controlledVehicle and AutoDrive.Hud.showHud == true then
+		if g_currentMission.AutoDrive.showMouse then
+			local buttonHovered = false;
+			for _,button in pairs(AutoDrive.Hud.Buttons) do
 
+				if posX > button.posX and posX < (button.posX + button.width) and posY > button.posY and posY < (button.posY + button.height) and button.isVisible then
+					--print("Clicked button " .. button.name);
+					if self.ad.sToolTip ~= button.toolTip then
+						self.ad.sToolTip = button.toolTip;
+						self.ad.nToolTipTimer = 6000;
+						self.ad.nToolTipWait = 300;
+					end;
+					buttonHovered = true;
+				end;
+			end;
+			if not buttonHovered then
+				self.ad.sToolTip = "";
+			end;
+		end;
 		
 		if g_currentMission.AutoDrive.showMouse and button == 1 and isDown then
 			
@@ -1912,6 +1982,9 @@ function AutoDrive:update(dt)
 		if InputBinding.hasEvent(InputBinding.AD_import_routes) then
 			AutoDrive:InputHandling(self, "input_importRoutes");
 		end;
+		if InputBinding.hasEvent(InputBinding.ADFrontLoaderCam) then
+			AutoDrive:InputHandling(self, "input_frontLoaderCam");
+		end;
 
 	end;
 
@@ -1989,6 +2062,88 @@ function AutoDrive:update(dt)
 			if AutoDrive.nPrintTime < 0 then
 				AutoDrive.nPrintTime = 3000;
 				AutoDrive.printMessage = nil;
+			end;
+		end;
+
+		if self.ad.sToolTip ~= "" then
+			if self.ad.nToolTipWait <= 0 then
+				if self.ad.nToolTipTimer > 0 then
+					self.ad.nToolTipTimer = self.ad.nToolTipTimer - dt;
+				else
+					self.ad.sToolTip = "";
+				end;
+			else
+				self.ad.nToolTipWait = self.ad.nToolTipWait - dt;
+			end;
+		end;
+
+		if self.frontLoaderCam ~= nil then
+
+			local inputW = InputBinding.getDigitalInputAxis(InputBinding.AXIS_FRONTLOADER_ARM) + InputBinding.getAnalogInputAxis(InputBinding.AXIS_FRONTLOADER_ARM); --InputBinding.getDigitalInputAxis(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE)+InputBinding.getAnalogInputAxis(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE);
+
+			--self.ad.frontLoaderCamShift = Utils.getNoNil(self.ad.frontLoaderCamShift,0) + inputW*8e-4*dt;
+			--self.ad.frontLoaderCamShift = Utils.clamp(self.ad.frontLoaderCamShift,-1,2);
+
+			if self.ad.cam == true then
+
+				local node = self.components[1].node --self.frontloaderAttacher.attacherJoint.rootNode;
+				local nodeTool = node;
+				for _,impl in pairs(self.attachedImplements) do
+					if impl.object ~= nil then
+						if impl.object.typeName == "attachableFrontloader" then
+							--print("Selected frontloader tool as root node");
+							nodeTool = impl.object.attacherJoints[1].jointTransform;
+						end;
+					end;
+				end;
+				if self.typeDesc == "telehandler" then
+					nodeTool = self.attacherJoints[1].jointTransform;
+				end;
+				local xW,yW,zW = getWorldTranslation(node);
+				local xTool,yTool,zTool = getWorldTranslation(node);
+				local xCam,yCam,zCam = getWorldTranslation(self.frontLoaderCam);
+				if nodeTool == nil then
+					nodeTool = node;
+					self.frontLoaderCamOffsetX = self.sizeWidth/2; -- + 0.8;
+					self.frontLoaderCamOffsetZ = self.sizeLength/2 + 1.0; -- -1.0
+				else
+					xTool,yTool,zTool = getWorldTranslation(nodeTool);
+					local tempToolX,tempToolY,tempToolZ = worldToLocal(node,xTool,yTool,zTool);
+					local tempCamX,tempCamY,tempCamZ = worldToLocal(node,xCam,yCam,zCam);
+					self.frontLoaderCamOffsetX = (tempToolX-tempCamX)*0.5; -- + 0.8;
+					self.frontLoaderCamOffsetZ = (tempToolZ-tempCamZ)*0.5; -- -1.0
+				end;
+
+				local inputW = InputBinding.getDigitalInputAxis(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE)+InputBinding.getAnalogInputAxis(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE);
+
+				self.ad.frontLoaderCamShiftAngle = Utils.getNoNil(inputW*6e-3*dt,0);
+				self.ad.frontLoaderCamShiftAngle = Utils.clamp(self.ad.frontLoaderCamShiftAngle,-math.pi,math.pi);
+
+				local inputW = InputBinding.getDigitalInputAxis(InputBinding.AXIS_LOOK_LEFTRIGHT_VEHICLE)+InputBinding.getAnalogInputAxis(InputBinding.AXIS_LOOK_LEFTRIGHT_VEHICLE);
+
+				self.ad.frontLoaderCamShift = Utils.getNoNil(self.ad.frontLoaderCamShift,0) + inputW*3.5e-3*dt;
+				self.ad.frontLoaderCamShift = Utils.clamp(self.ad.frontLoaderCamShift,-5,10);
+
+				local x,y,z = worldToLocal(node,xW,yTool+0,zW) --+self.ad.frontLoaderCamShift
+				setTranslation(self.frontLoaderCam,x+self.frontLoaderCamOffsetX - self.ad.frontLoaderCamShift,y,z+self.frontLoaderCamOffsetZ);
+
+				xTool,yTool,zTool = getWorldTranslation(nodeTool);
+				xCam,yCam,zCam = getWorldTranslation(self.frontLoaderCam);
+				local tempToolX,tempToolY,tempToolZ = worldToLocal(node,xTool,yTool,zTool);
+				local tempCamX,tempCamY,tempCamZ = worldToLocal(node,xCam,yCam,zCam);
+				local camToTool = (math.asin( (tempToolX-tempCamX) / math.sqrt( math.pow((tempToolX-tempCamX),2)+ math.pow((tempToolZ-tempCamZ+1.5),2) )) + math.pi);
+				local before = camToTool;
+				if camToTool >= math.pi then
+					camToTool = -2*math.pi+camToTool;
+				end;
+				local rx,ry,rz = getRotation( self.frontLoaderCam);
+				local wrx,wry,wrz = localDirectionToLocal(self.frontLoaderCam,node, rx,ry,rz ) ;
+				self.ad.frontLoaderCamShiftSide = (camToTool-ry)*0.98;
+
+				rotate(self.frontLoaderCam,self.ad.frontLoaderCamShiftAngle ,self.ad.frontLoaderCamShiftSide,0);
+
+				setCamera(self.frontLoaderCam);
+
 			end;
 		end;
 	end;
@@ -2196,6 +2351,7 @@ function AutoDrive:update(dt)
 
 						end;
 						if self.speed_override == -1 then self.speed_override = self.nSpeed; end;
+						if self.speed_override > self.nSpeed then self.speed_override = self.nSpeed; end;
 
 						local wp_new = nil;
 
@@ -2208,7 +2364,7 @@ function AutoDrive:update(dt)
 							local start = g_currentMission.AutoDrive.mapWayPoints[self.ntargetSelected];
 							local distance1 = getDistance(x,z, destination.x, destination.z);
 							local distance2 = getDistance(x,z, start.x, start.z);
-							if distance1 < 20 or distance2 < 20 then
+							if distance1 < 12 or distance2 < 12 then
 								if self.speed_override > 12 then
 									self.speed_override = 12;
 								end;
@@ -2248,12 +2404,19 @@ function AutoDrive:update(dt)
 
 		if self.bPaused == true then
 			self.nTimeToDeadLock = 15000;
-			if self.isServer == true then
-				xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
+			if self.nPauseTimer > 0 then
+				if self.isServer == true then
+					xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
 
-				AIVehicleUtil.driveToPoint(self, dt, 0, false, self.bDrivingForward, xl, zl, 0, false );
+					AIVehicleUtil.driveToPoint(self, dt, 0, false, self.bDrivingForward, xl, zl, 0, false );
 
-				veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
+					veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
+				end;
+				self.nPauseTimer = self.nPauseTimer - dt;
+			end;
+		else
+			if self.nPauseTimer < 5000 then
+				self.nPauseTimer = 5000;
 			end;
 		end;
 
@@ -2892,7 +3055,7 @@ function AutoDrive:draw()
 					end;
 				end;
 
-				if self.bShowDebugMapMarker == true then
+				if self.bShowDebugMapMarker == true and g_currentMission.AutoDrive.mapWayPoints[1] ~= nil then
 					local closest = AutoDrive:findClosestWayPoint(self);
 					local x1,y1,z1 = getWorldTranslation(self.components[1].node);
 					drawDebugLine(x1, y1, z1, 0,0,1, g_currentMission.AutoDrive.mapWayPoints[closest].x, g_currentMission.AutoDrive.mapWayPoints[closest].y+4, g_currentMission.AutoDrive.mapWayPoints[closest].z, 0,0,1);
@@ -3046,6 +3209,7 @@ function AutoDrive:draw()
 				local adFontSize = 0.014;
 				local adPosX = 0.03 + g_currentMission.helpBoxWidth
 				local adPosY = 0.975;
+				setTextColor(1,1,1,1);
 				renderText(adPosX, adPosY, adFontSize, AutoDrive.printMessage);
 				--self.printMessage = nil;
 			end;
@@ -3054,6 +3218,7 @@ function AutoDrive:draw()
 				local adFontSize = 0.014;
 				local adPosX = 0.03 + g_currentMission.helpBoxWidth
 				local adPosY = 0.975;
+				setTextColor(1,1,1,1);
 				renderText(adPosX, adPosY, adFontSize, self.printMessage);
 				--self.printMessage = nil;
 			end;
@@ -3131,6 +3296,9 @@ function AutoDrive:drawHud(vehicle)
 
 			setTextColor(1,1,1,1);
 			renderText(adPosX, adPosY, adFontSize,"AutoDrive");
+			if vehicle.ad.sToolTip ~= "" and vehicle.ad.nToolTipWait <= 0 then
+				renderText(adPosX + 0.03, adPosY, adFontSize," - " .. vehicle.ad.sToolTip);
+			end;
 		end;
 		
 		if vehicle.sTargetSelected ~= nil then
@@ -3140,7 +3308,7 @@ function AutoDrive:drawHud(vehicle)
 
 			setTextColor(1,1,1,1);
 			renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
-			renderText(AutoDrive.Hud.posX - 0.018 + AutoDrive.Hud.width, adPosY, adFontSize, "" .. vehicle.nSpeed);
+			renderText(AutoDrive.Hud.posX - 0.012 + AutoDrive.Hud.width, adPosY, adFontSize, "" .. vehicle.nSpeed);
 			
 			--[[
 			local img1 = Utils.getNoNil("img/createMapMarker.dds", "empty.dds" )
