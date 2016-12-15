@@ -763,6 +763,15 @@ function AutoDrive:AddButton(name, img, img2, toolTip, on, visible)
 		end
 		AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_3 = result;
 	end;
+	if name == "input_record" then
+		buttonImg = Utils.getNoNil("img/" .. "record_dual.dds", "empty.dds" )
+		state, result = pcall( Utils.getFilename, buttonImg, AutoDrive.directory )
+		if not state then
+			print("ERROR: "..tostring(result).." (buttinImg: "..tostring(buttinImg)..")")
+			return
+		end
+		AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_dual = result;
+	end;
 	
 	if on then
 		AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_active = AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_on;
@@ -869,6 +878,7 @@ function AutoDrive:InputHandling(vehicle, input)
 			if input == "input_record" and g_server ~= nil and g_dedicatedServerInfo == nil then
 				if vehicle.bcreateMode == false then
 					vehicle.bcreateMode = true;
+					vehicle.bcreateModeDual = false;
 					vehicle.nCurrentWayPoint = 0;
 					vehicle.bActive = false;
 					vehicle.ad.wayPoints = {};
@@ -876,8 +886,13 @@ function AutoDrive:InputHandling(vehicle, input)
 					--vehicle.printMessage = g_i18n:getText("AD_Recording_on");
 					--vehicle.nPrintTime = 3000;
 				else
-					vehicle.bcreateMode = false;
-					--vehicle.printMessage = g_i18n:getText("AD_Recording_off");
+					if vehicle.bcreateModeDual == false then
+						vehicle.bcreateModeDual = true;
+					else
+						vehicle.bcreateMode = false;
+						vehicle.bcreateModeDual = false;
+					end;
+						--vehicle.printMessage = g_i18n:getText("AD_Recording_off");
 					--vehicle.nPrintTime = 3000;
 				end;
 
@@ -1597,6 +1612,7 @@ function init(self)
 	self.bInitialized = false;
 	self.ad.wayPoints = {};
 	self.bcreateMode = false;
+	self.bcreateModeDual = false;
 	self.nCurrentWayPoint = 0;
 	self.nlastLogged = 0;
 	self.nloggingInterval = 500;
@@ -1732,6 +1748,10 @@ function init(self)
 		end;
 	end;
 
+	self.bChoosingDestination = false;
+	self.sChosenDestination = "";
+	self.sEnteredChosenDestination = "";
+
 end;
 
 function AutoDrive:translate(text)
@@ -1827,7 +1847,25 @@ function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
 					end;
 				end;
 			end;
-		
+
+			local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.Background.destination.width; -- + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
+			local adPosY = AutoDrive.Hud.posY + 0.04 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
+			local height = 0.015;
+			local width = 0.05;
+			if posX > (adPosX) and posX < (adPosX + width) and posY > (adPosY) and posY < (adPosY + height) then
+				if self.bChoosingDestination == false then
+					self.bChoosingDestination = true
+					self.isBroken = false;
+					g_currentMission.isPlayerFrozen = true;
+					self.isBroken = true;
+				else
+					self.bChoosingDestination = false;
+					g_currentMission.isPlayerFrozen = false;
+					self.isBroken = false;
+				end;
+			end;
+
+
 		end;
 	end;
 	
@@ -1850,6 +1888,65 @@ function AutoDrive:keyEvent(unicode, sym, modifier, isDown)
 				else
 					if unicode ~= 0 then
 						self.sEnteredMapMarkerString = self.sEnteredMapMarkerString .. string.char(unicode);
+					end;
+				end;
+			end;
+		end;
+		if isDown and self.bChoosingDestination then
+			if sym == 13 then
+				self.bChoosingDestination = false;
+				self.sChosenDestination = "";
+				self.sEnteredChosenDestination = "";
+				self.isBroken = false;
+				g_currentMission.isPlayerFrozen = false;
+			else
+				if sym == 8 then
+					self.sEnteredChosenDestination = string.sub(self.sEnteredChosenDestination,1,string.len(self.sEnteredChosenDestination)-1)
+				else
+					if sym == 9 then
+						local foundMatch = false;
+						local behindCurrent = false;
+						local markerID = -1;
+						local markerIndex = -1;
+						if self.sChosenDestination == "" then
+							behindCurrent = true;
+						end;
+						for _,marker in pairs( g_currentMission.AutoDrive.mapMarker) do
+							local tempName = self.sChosenDestination;
+							if string.find(marker.name, self.sEnteredChosenDestination) == 1 and behindCurrent and not foundMatch then
+								self.sChosenDestination = marker.name;
+								markerID = marker.id;
+								markerIndex = _;
+								foundMatch = true;
+							end;
+							if tempName == marker.name then
+								behindCurrent = true;
+							end;
+						end;
+						if behindCurrent == true and foundMatch == false then
+							foundMatch = false;
+							for _,marker in pairs( g_currentMission.AutoDrive.mapMarker) do
+
+								if string.find(marker.name, self.sEnteredChosenDestination) == 1 and not foundMatch then
+									self.sChosenDestination = marker.name;
+									markerID = marker.id;
+									markerIndex = _;
+									foundMatch = true;
+								end;
+							end;
+						end;
+						if self.sChosenDestination ~= "" then
+							self.nMapMarkerSelected = markerIndex;
+							self.ntargetSelected = g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].id;
+							self.sTargetSelected = g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name;
+							local translation = AutoDrive:translate(self.sTargetSelected);
+							self.sTargetSelected = translation;
+						end;
+
+					else
+						if unicode ~= 0 then
+							self.sEnteredChosenDestination = self.sEnteredChosenDestination .. string.char(unicode);
+						end;
 					end;
 				end;
 			end;
@@ -2313,6 +2410,7 @@ function AutoDrive:update(dt)
 				if self.isServer == true then
 
 					local traffic = AutoDrive:detectTraffic(self,self.ad.wayPoints[self.nCurrentWayPoint]);
+					local oneWayTraffic = AutoDrive:detectAdTrafficOnRoute(self);
 
 					if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
 
@@ -2364,7 +2462,7 @@ function AutoDrive:update(dt)
 							local start = g_currentMission.AutoDrive.mapWayPoints[self.ntargetSelected];
 							local distance1 = getDistance(x,z, destination.x, destination.z);
 							local distance2 = getDistance(x,z, start.x, start.z);
-							if distance1 < 12 or distance2 < 12 then
+							if distance1 < 20 or distance2 < 20 then
 								if self.speed_override > 12 then
 									self.speed_override = 12;
 								end;
@@ -2373,13 +2471,13 @@ function AutoDrive:update(dt)
 
 						local finalSpeed = self.speed_override;
 						local finalAcceleration = true;
-						if traffic then
+						if traffic or oneWayTraffic then
 							finalSpeed = 0;
 							veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
 							finalAcceleration = false;
 							self.nTimeToDeadLock = 15000;
 						else
-							veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_ON);
+							veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_ACTIVE);
 						end;
 
 						AIVehicleUtil.driveToPoint(self, dt, 1, finalAcceleration, self.bDrivingForward, xl, zl, finalSpeed, false );
@@ -2393,7 +2491,7 @@ function AutoDrive:update(dt)
 							finalAcceleration = false;
 							self.nTimeToDeadLock = 15000;
 						else
-							veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_ON);
+							veh:setCruiseControlState(Drivable.CRUISECONTROL_STATE_ACTIVE);
 						end;
 						xl,yl,zl = worldToLocal(veh.components[1].node, self.nTargetX,y,self.nTargetZ);
 						AIVehicleUtil.driveToPoint(self, dt, 1, finalAcceleration, self.bDrivingForward, xl, zl, finalSpeed, false );
@@ -2500,6 +2598,12 @@ function AutoDrive:update(dt)
 								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].y = y;
 								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].z = z;
 							end;
+							if self.bcreateModeDual == true then
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].incoming[1] = g_currentMission.AutoDrive.mapWayPointsCounter;
+								--edit current point
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].out[1] = g_currentMission.AutoDrive.mapWayPointsCounter-1;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].out_cost[1] = 1;
+							end;
 
 							i = i+1;
 						end;
@@ -2524,8 +2628,10 @@ function AutoDrive:update(dt)
 							if self.bCreateMapPoints == true then
 								g_currentMission.AutoDrive.mapWayPointsCounter = g_currentMission.AutoDrive.mapWayPointsCounter + 1;
 								--edit previous point
-								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out[1] = g_currentMission.AutoDrive.mapWayPointsCounter;
-								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out_cost[1] = 1;
+								local out_index = 1;
+								if g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out[out_index] ~= nil then out_index = out_index+1; end;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out[out_index] = g_currentMission.AutoDrive.mapWayPointsCounter;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].out_cost[out_index] = 1;
 								--edit current point
 								--print("Creating Waypoint #" .. g_currentMission.AutoDrive.mapWayPointsCounter);
 								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter] = createNode(g_currentMission.AutoDrive.mapWayPointsCounter,{},{},{},{});
@@ -2533,6 +2639,12 @@ function AutoDrive:update(dt)
 								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].x = x;
 								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].y = y;
 								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].z = z;
+							end;
+							if self.bcreateModeDual == true then
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter-1].incoming[2] = g_currentMission.AutoDrive.mapWayPointsCounter;
+								--edit current point
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].out[1] = g_currentMission.AutoDrive.mapWayPointsCounter-1;
+								g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter].out_cost[1] = 1;
 							end;
 
 							i = i+1;
@@ -2711,7 +2823,10 @@ function AutoDrive:updateButtons(vehicle)
 		if button.name == "input_record" then
 			local buttonImg = "";
 			if vehicle.bcreateMode == true then
-				button.img_active = button.img_on;						
+				button.img_active = button.img_on;
+				if vehicle.bcreateModeDual == true then
+					button.img_active = button.img_dual;
+				end;
 			else
 				button.img_active = button.img_off;
 			end;
@@ -3039,7 +3154,19 @@ function AutoDrive:draw()
 
 						if point.out ~= nil then
 							for i2,neighbor in pairs(point.out) do
-								drawDebugLine(point.x, point.y+4, point.z, 0,1,0, g_currentMission.AutoDrive.mapWayPoints[neighbor].x, g_currentMission.AutoDrive.mapWayPoints[neighbor].y+4, g_currentMission.AutoDrive.mapWayPoints[neighbor].z, 1,1,1);
+								local testDual = false;
+								for _,incoming in pairs(point.incoming) do
+									if incoming == neighbor then
+										testDual = true;
+									end;
+								end;
+								if testDual == true then
+									drawDebugLine(point.x, point.y+4, point.z, 1,0,0, g_currentMission.AutoDrive.mapWayPoints[neighbor].x, g_currentMission.AutoDrive.mapWayPoints[neighbor].y+4, g_currentMission.AutoDrive.mapWayPoints[neighbor].z, 1,0,0);
+								else
+									drawDebugLine(point.x, point.y+4, point.z, 0,1,0, g_currentMission.AutoDrive.mapWayPoints[neighbor].x, g_currentMission.AutoDrive.mapWayPoints[neighbor].y+4, g_currentMission.AutoDrive.mapWayPoints[neighbor].z, 1,1,1);
+								end;
+
+
 							end;
 						end;
 
@@ -3306,8 +3433,20 @@ function AutoDrive:drawHud(vehicle)
 			local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.Background.destination.width; -- + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
 			local adPosY = AutoDrive.Hud.posY + 0.04 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
 
+			if vehicle.bChoosingDestination == true then
+				if vehicle.sChosenDestination ~= "" then
+					setTextColor(1,1,1,1);
+					renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
+				end;
+				if vehicle.sEnteredChosenDestination ~= "" then
+					setTextColor(1,0,0,1);
+					renderText(adPosX, adPosY, adFontSize,  vehicle.sEnteredChosenDestination);
+				end;
+			else
+				setTextColor(1,1,1,1);
+				renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
+			end;
 			setTextColor(1,1,1,1);
-			renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
 			renderText(AutoDrive.Hud.posX - 0.012 + AutoDrive.Hud.width, adPosY, adFontSize, "" .. vehicle.nSpeed);
 			
 			--[[
@@ -3504,10 +3643,10 @@ function AutoDrive:detectTraffic(vehicle, wp_next)
 						z = z + (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) };
 	boundingBox[2] ={ 	x = x - (width/2) * ( ortho.x / (math.abs(ortho.x)+math.abs(ortho.z)) ),
 						z = z - (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) };
-	boundingBox[3] ={ 	x = x - (width/2) * ( ortho.x / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 4) * (vectorToWp.x/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )),
-						z = z - (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 4) * (vectorToWp.z/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )) };
-	boundingBox[4] ={ 	x = x + (width/2) * ( ortho.x / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 4) * (vectorToWp.x/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )),
-						z = z + (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 4) * (vectorToWp.z/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )) };
+	boundingBox[3] ={ 	x = x - (width/2) * ( ortho.x / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 6) * (vectorToWp.x/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )),
+						z = z - (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 6) * (vectorToWp.z/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )) };
+	boundingBox[4] ={ 	x = x + (width/2) * ( ortho.x / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 6) * (vectorToWp.x/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )),
+						z = z + (width/2) * ( ortho.z / (math.abs(ortho.x)+math.abs(ortho.z)) ) +  (length/2 + 6) * (vectorToWp.z/(math.abs(vectorToWp.x) + math.abs(vectorToWp.z) )) };
 
 	--[[
 	drawDebugLine(boundingBox[1].x, y+4, boundingBox[1].z, 1,0,0, boundingBox[2].x, y+4, boundingBox[2].z, 1,0,0);
@@ -3750,6 +3889,85 @@ function AutoDrive:adOnTrafficCollisionTrigger(triggerId, otherId, onEnter, onLe
 
 
 end;
+
+function AutoDrive:detectAdTrafficOnRoute(vehicle)
+	--self.ad.wayPoints
+	--self.nCurrentWayPoint
+	if vehicle.bActive == true then
+		local idToCheck = 3;
+		local alreadyOnDualRoute = false;
+		if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1] ~= nil and vehicle.ad.wayPoints[vehicle.nCurrentWayPoint] ~= nil then
+			for _,incoming in pairs(vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1].incoming) do
+				if incoming == vehicle.ad.wayPoints[vehicle.nCurrentWayPoint].id then
+					alreadyOnDualRoute = true;
+				end;
+			end;
+		end;
+		if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck] ~= nil and vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck+1] ~= nil and not alreadyOnDualRoute then
+			local dualRoute = false;
+			for _,incoming in pairs(vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck].incoming) do
+				if incoming == vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck+1].id then
+					dualRoute = true;
+				end;
+			end;
+
+			local dualRoutePoints = {};
+			local counter = 0;
+			idToCheck = -3;
+			while dualRoute == true or idToCheck < 3 do
+				if vehicle.ad.wayPoints[idToCheck] ~= nil and vehicle.ad.wayPoints[idToCheck+1] ~= nil then
+					local testDual = false;
+					for _,incoming in pairs(vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck].incoming) do
+						if incoming == vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck+1].id then
+							testDual = true;
+						end;
+					end;
+					if testDual == true then
+						counter = counter + 1;
+						dualRoutePoints[counter] = vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck].id;
+					else
+						dualRoute = false;
+					end;
+				end;
+				idToCheck = idToCheck + 1;
+			end;
+
+			local trafficDetected = false;
+			local trafficVehicle = nil;
+			if counter > 0 then
+				for _,other in pairs(g_currentMission.nodeToVehicle) do
+					if other ~= vehicle and other.bActive == true then
+						local onSameRoute = false;
+						local window = 2;
+						local i = -window;
+						while i <= window do
+							if other.ad.wayPoints[other.nCurrentWayPoint+i] ~= nil then
+								for _,point in pairs(dualRoutePoints) do
+									if point == other.ad.wayPoints[other.nCurrentWayPoint+i].id then
+										onSameRoute = true;
+									end;
+								end;
+							end;
+							i = i + 1;
+						end;
+						if onSameRoute == true then
+							trafficDetected = true;
+							trafficVehicle = other;
+						end;
+					end;
+				end;
+			end;
+			if trafficDetected == true then
+				--print("Traffic deteced");
+				return true;
+			end;
+
+		end;
+
+	end;
+	return false;
+
+end
 
 function AutoDrive:ExportRoutes()
 
