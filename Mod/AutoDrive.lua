@@ -4155,6 +4155,7 @@ function AutoDrive:ImportRoutes()
 		end;
 
 		local wp_counter = 0;
+		g_currentMission.AutoDrive.mapWayPoints = {};
 		for i, id in pairs(idTable) do
 			if id ~= "" then
 				wp_counter = wp_counter +1;
@@ -4197,6 +4198,7 @@ function AutoDrive:ImportRoutes()
 		if g_currentMission.AutoDrive.mapWayPoints[wp_counter] ~= nil then
 			print("AD: Loaded Waypoints: " .. wp_counter);
 			g_currentMission.AutoDrive.mapWayPointsCounter = wp_counter;
+			g_currentMission.AutoDrive.mapMarker = {};
 		else
 			g_currentMission.AutoDrive.mapWayPointsCounter = 0;
 		end;
@@ -4220,6 +4222,7 @@ function AutoDrive:ImportRoutes()
 			g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
 			mapMarker.name = getXMLString(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".name");
 		end;
+		AutoDrive.config_changed = true;
 		
 	else
 		print("AD: Import File does not exist: " .. importFile);
