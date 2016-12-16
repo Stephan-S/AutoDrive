@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "1.0.2";
+AutoDrive.Version = "1.0.3";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -2785,7 +2785,7 @@ function AutoDrive:update(dt)
 		end;
 
 		if self.bPaused == true and not self.bUnloading and not self.bLoading then
-			if trailer:getFreeCapacity() <= 0 then
+			if trailer == nil or trailer:getFreeCapacity() <= 0 then
 				self.bPaused = false;
 			end;
 		end;
