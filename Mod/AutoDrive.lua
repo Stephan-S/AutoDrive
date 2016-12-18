@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "1.0.4";
+AutoDrive.Version = "1.0.5";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -802,8 +802,8 @@ function AutoDrive:InputHandling(vehicle, input)
 			--print("correct vehicle");
 			if input == "input_silomode" then
 
-				DebugUtil.printTableRecursively(g_currentMission.tipTriggers, ":",0,2);
-				DebugUtil.printTableRecursively(g_currentMission.siloTriggers, ":",0,2);
+				--DebugUtil.printTableRecursively(g_currentMission.tipTriggers, ":",0,2);
+				--DebugUtil.printTableRecursively(g_currentMission.siloTriggers, ":",0,2);
 
 				if vehicle.bTargetMode == true and vehicle.bUnloadAtTrigger == false then
 					if g_server ~= nil and g_dedicatedServerInfo == nil then
