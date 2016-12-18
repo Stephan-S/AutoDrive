@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "1.0.3";
+AutoDrive.Version = "1.0.4";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -802,8 +802,8 @@ function AutoDrive:InputHandling(vehicle, input)
 			--print("correct vehicle");
 			if input == "input_silomode" then
 
-				--DebugUtil.printTableRecursively(vehicle.frontloaderAttacher, ":",0,5);
-				--DebugUtil.printTableRecursively(vehicle.attachedImplements, ":",0,5);
+				DebugUtil.printTableRecursively(g_currentMission.tipTriggers, ":",0,2);
+				DebugUtil.printTableRecursively(g_currentMission.siloTriggers, ":",0,2);
 
 				if vehicle.bTargetMode == true and vehicle.bUnloadAtTrigger == false then
 					if g_server ~= nil and g_dedicatedServerInfo == nil then
@@ -2410,7 +2410,10 @@ function AutoDrive:update(dt)
 				if self.isServer == true then
 
 					local traffic = AutoDrive:detectTraffic(self,self.ad.wayPoints[self.nCurrentWayPoint]);
-					local oneWayTraffic = AutoDrive:detectAdTrafficOnRoute(self);
+					local oneWayTraffic = false;
+					if self.bReverseTrack == false then
+						oneWayTraffic = AutoDrive:detectAdTrafficOnRoute(self);
+					end;
 
 					if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
 
@@ -3897,9 +3900,11 @@ function AutoDrive:detectAdTrafficOnRoute(vehicle)
 		local idToCheck = 3;
 		local alreadyOnDualRoute = false;
 		if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1] ~= nil and vehicle.ad.wayPoints[vehicle.nCurrentWayPoint] ~= nil then
-			for _,incoming in pairs(vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1].incoming) do
-				if incoming == vehicle.ad.wayPoints[vehicle.nCurrentWayPoint].id then
-					alreadyOnDualRoute = true;
+			if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1].incoming ~= nil then
+				for _,incoming in pairs(vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1].incoming) do
+					if incoming == vehicle.ad.wayPoints[vehicle.nCurrentWayPoint].id then
+						alreadyOnDualRoute = true;
+					end;
 				end;
 			end;
 		end;
