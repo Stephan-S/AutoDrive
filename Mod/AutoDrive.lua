@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "1.0.5";
+AutoDrive.Version = "1.0.6";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -3920,7 +3920,7 @@ function AutoDrive:detectAdTrafficOnRoute(vehicle)
 			local counter = 0;
 			idToCheck = -3;
 			while dualRoute == true or idToCheck < 3 do
-				if vehicle.ad.wayPoints[idToCheck] ~= nil and vehicle.ad.wayPoints[idToCheck+1] ~= nil then
+				if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck] ~= nil and vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck+1] ~= nil then
 					local testDual = false;
 					for _,incoming in pairs(vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck].incoming) do
 						if incoming == vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck+1].id then
