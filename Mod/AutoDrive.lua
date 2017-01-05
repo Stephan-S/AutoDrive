@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "1.0.6";
+AutoDrive.Version = "1.0.7";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -2111,7 +2111,7 @@ function AutoDrive:update(dt)
 	end;
 
 	if g_currentMission.AutoDrive ~= nil then
-		if g_currentMission.AutoDrive.requestedWaypoints ~= true and self.requestWayPointTimer < 0 and networkGetObjectId(self) ~= nil then
+		if g_server == nil and g_currentMission.AutoDrive.requestedWaypoints ~= true and self.requestWayPointTimer < 0 and networkGetObjectId(self) ~= nil then
 			AutoDriveMapEvent:sendEvent(self);
 			g_currentMission.AutoDrive.requestedWaypoints = true;
 		end;
