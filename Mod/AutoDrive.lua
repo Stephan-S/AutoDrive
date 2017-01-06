@@ -5,7 +5,7 @@
 
 
 AutoDrive = {}; 
-AutoDrive.Version = "1.0.7";
+AutoDrive.Version = "1.0.8";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -1249,7 +1249,7 @@ function AutoDrive:InputHandling(vehicle, input)
 
 		if input == "input_removeWaypoint" and g_server ~= nil and g_dedicatedServerInfo == nil then
 
-			if vehicle.bShowDebugMapMarker == true then
+			if vehicle.bShowDebugMapMarker == true and g_currentMission.AutoDrive.mapWayPoints[1] ~= nil then
 				local closest = AutoDrive:findClosestWayPoint(vehicle)
 				print("removing waypoint with id: " .. closest);
 				AutoDrive:removeMapWayPoint( g_currentMission.AutoDrive.mapWayPoints[closest] );
@@ -3028,14 +3028,16 @@ end;
 function AutoDrive:findClosestWayPoint(veh)
 	--returns waypoint closest to vehicle position
 	local x1,y1,z1 = getWorldTranslation(veh.components[1].node);
-	
 	local closest = 1;
-	local distance = getDistance(g_currentMission.AutoDrive.mapWayPoints[1].x,g_currentMission.AutoDrive.mapWayPoints[1].z,x1,z1);
-	for i in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-		local dis = getDistance(g_currentMission.AutoDrive.mapWayPoints[i].x,g_currentMission.AutoDrive.mapWayPoints[i].z,x1,z1);
-		if dis < distance then
-			closest = i;
-			distance = dis;
+	if g_currentMission.AutoDrive.mapWayPoints[1] ~= nil then
+
+		local distance = getDistance(g_currentMission.AutoDrive.mapWayPoints[1].x,g_currentMission.AutoDrive.mapWayPoints[1].z,x1,z1);
+		for i in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+			local dis = getDistance(g_currentMission.AutoDrive.mapWayPoints[i].x,g_currentMission.AutoDrive.mapWayPoints[i].z,x1,z1);
+			if dis < distance then
+				closest = i;
+				distance = dis;
+			end;
 		end;
 	end;
 	
