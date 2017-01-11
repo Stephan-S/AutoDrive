@@ -4,7 +4,8 @@
 
 
 
-AutoDrive = {}; 
+AutoDrive = {};
+AutoDrive = {};
 AutoDrive.Version = "1.0.9";
 AutoDrive.config_changed = false;
 
