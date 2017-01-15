@@ -927,7 +927,7 @@ function AutoDrive:InputHandling(vehicle, input)
 					if vehicle.attachedImplements ~= nil then
 						for _, implement in pairs(vehicle.attachedImplements) do
 							if implement.object ~= nil then
-								if implement.object.typeDesc == "tipper" then
+								if implement.object.typeDesc == g_i18n:getText("typeDesc_tipper") then -- "tipper" then
 
 									trailer = implement.object;
 								end;
@@ -2661,7 +2661,6 @@ function AutoDrive:update(dt)
 		end;	
 	end;
 
-
 	if self.bActive == true and self.bUnloadAtTrigger == true and self.isServer == true then
 		local trailers = {};
 		local trailerCount = 0;
@@ -2669,18 +2668,18 @@ function AutoDrive:update(dt)
 		if self.attachedImplements ~= nil then
 			for _, implement in pairs(self.attachedImplements) do
 				if implement.object ~= nil then
-					if implement.object.typeDesc == "tipper" then
+					if implement.object.typeDesc == g_i18n:getText("typeDesc_tipper") then
 						trailer = implement.object;
 						trailers[1] = trailer;
 						trailerCount = 1;
 						for __,impl in pairs(trailer.attachedImplements) do
 							if impl.object ~= nil then
-								if impl.object.typeDesc == "tipper" then
+								if impl.object.typeDesc == g_i18n:getText("typeDesc_tipper") then
 									trailers[2] = impl.object;
 									trailerCount = 2;
 									for ___,implement3 in pairs(trailers[2].attachedImplements) do
 										if implement3.object ~= nil then
-											if implement3.object.typeDesc == "tipper" then
+											if implement3.object.typeDesc == g_i18n:getText("typeDesc_tipper") then
 												trailers[3] = implement3.object;
 												trailerCount = 3;
 											end;
