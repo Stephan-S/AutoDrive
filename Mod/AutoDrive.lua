@@ -6,7 +6,7 @@
 
 AutoDrive = {};
 AutoDrive = {};
-AutoDrive.Version = "1.0.9";
+AutoDrive.Version = "1.1.1";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -1752,6 +1752,8 @@ function init(self)
 	self.bChoosingDestination = false;
 	self.sChosenDestination = "";
 	self.sEnteredChosenDestination = "";
+
+	self.trafficVehicle = nil;
 
 end;
 
@@ -3901,10 +3903,10 @@ function AutoDrive:detectAdTrafficOnRoute(vehicle)
 	if vehicle.bActive == true then
 		local idToCheck = 3;
 		local alreadyOnDualRoute = false;
-		if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1] ~= nil and vehicle.ad.wayPoints[vehicle.nCurrentWayPoint] ~= nil then
-			if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1].incoming ~= nil then
-				for _,incoming in pairs(vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1].incoming) do
-					if incoming == vehicle.ad.wayPoints[vehicle.nCurrentWayPoint].id then
+		if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-2] ~= nil and vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1] ~= nil then
+			if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-2].incoming ~= nil then
+				for _,incoming in pairs(vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-2].incoming) do
+					if incoming == vehicle.ad.wayPoints[vehicle.nCurrentWayPoint-1].id then
 						alreadyOnDualRoute = true;
 					end;
 				end;
@@ -3940,7 +3942,7 @@ function AutoDrive:detectAdTrafficOnRoute(vehicle)
 			end;
 
 			local trafficDetected = false;
-			local trafficVehicle = nil;
+			vehicle.trafficVehicle = nil;
 			if counter > 0 then
 				for _,other in pairs(g_currentMission.nodeToVehicle) do
 					if other ~= vehicle and other.bActive == true then
@@ -3957,9 +3959,9 @@ function AutoDrive:detectAdTrafficOnRoute(vehicle)
 							end;
 							i = i + 1;
 						end;
-						if onSameRoute == true then
+						if onSameRoute == true and other.trafficVehicle == nil then
 							trafficDetected = true;
-							trafficVehicle = other;
+							vehicle.trafficVehicle = other;
 						end;
 					end;
 				end;
