@@ -15,7 +15,7 @@
 ]]>
 	   </de>
 	</description>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
 	<multiplayer supported="true"/>   
 	<iconFilename>store.dds</iconFilename>
     <extraSourceFiles>
@@ -47,11 +47,12 @@
 		<text name="input_ADDebugShowClosest">		<en>AD: Show Closest Point</en>  		<de>AD: Naheliegendsten Punkt anzeigen</de>	</text>		
 		<text name="input_ADDebugSelectNeighbor">	<en>AD: Select Neighbor Point</en>  	<de>AD: Nachbarpunkt wählen</de>			</text>		
 		<text name="input_ADDebugChangeNeighbor">	<en>AD: Select next Neighbor Point</en> <de>AD: Nächsten Nachbarpunkt wählen</de>	</text>		
-		<text name="input_ADDebugCreateConnection">	<en>AD: Toggle connection between</en>  <de>AD: Verbindung an/aus</de>			</text>
+		<text name="input_ADDebugCreateConnection">	<en>AD: Toggle connection between</en>  <de>AD: Verbindung an/aus</de>				</text>
 		<text name="input_ADDebugCreateMapMarker">	<en>AD: Create new Target</en>  		<de>AD: Neues Ziel erstellen</de>			</text>		
 		<text name="input_ADDebugDeleteWayPoint">	<en>AD: Delete Waypoint</en>  			<de>AD: Wegpunkt löschen</de>				</text>	
-		<text name="input_ADDebugForceUpdate">		<en>AD: Update ways</en>  				<de>AD: Wege neuberechnen</de>				</text>	
-    
+		<text name="input_ADDebugForceUpdate">		<en>AD: Update ways</en>  				<de>AD: Wege neuberechnen</de>				</text>
+		<text name="input_ADDebugDeleteDestination">		<en>AD: Delete Destination</en>  		<de>AD: Ziel löschen</de>					</text>
+
 		<text name="AD_Deactivated">	<en>AutoDrive stopped</en>  			<de>AutoDrive aus</de>				</text>	
 		<text name="AD_Activated">		<en>AutoDrive started</en>  			<de>AutoDrive an</de>				</text>	
 		
@@ -213,6 +214,7 @@
 		<input name="ADDebugCreateMapMarker" 			category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
 		<input name="ADDebugDeleteWayPoint" 			category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
 		<input name="ADDebugForceUpdate" 				category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
+		<input name="ADDebugDeleteDestination" 			category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
     </inputBindings>
 	
 </modDesc>

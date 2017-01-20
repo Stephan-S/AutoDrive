@@ -6,7 +6,7 @@
 
 AutoDrive = {};
 AutoDrive = {};
-AutoDrive.Version = "1.1.1";
+AutoDrive.Version = "1.1.2";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -1258,6 +1258,16 @@ function AutoDrive:InputHandling(vehicle, input)
 
 		end;
 
+		if input == "input_removeDestination" and g_server ~= nil and g_dedicatedServerInfo == nil then
+
+			if vehicle.bShowDebugMapMarker == true and g_currentMission.AutoDrive.mapWayPoints[1] ~= nil then
+				local closest = AutoDrive:findClosestWayPoint(vehicle)
+				print("removing destination with node id: " .. closest);
+				AutoDrive:removeMapMarker( g_currentMission.AutoDrive.mapWayPoints[closest] );
+			end;
+
+		end;
+
 		if input == "input_recalculate" and g_server ~= nil and g_dedicatedServerInfo == nil then
 			AutoDrive:ContiniousRecalculation();
 
@@ -2084,6 +2094,9 @@ function AutoDrive:update(dt)
 		end;
 		if InputBinding.hasEvent(InputBinding.ADFrontLoaderCam) then
 			AutoDrive:InputHandling(self, "input_frontLoaderCam");
+		end;
+		if InputBinding.hasEvent(InputBinding.ADDebugDeleteDestination) then
+			AutoDrive:InputHandling(self, "input_removeDestination");
 		end;
 
 	end;
@@ -3599,6 +3612,24 @@ function AutoDrive:removeMapWayPoint(del)
 		end;
 
 end;
+
+function AutoDrive:removeMapMarker(del)
+	--adjust all mapmarkers
+	local deletedMarker = false;
+	for _,marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+		if marker.id == del.id then
+			deletedMarker = true;
+		end;
+		if deletedMarker then
+			if g_currentMission.AutoDrive.mapMarker[_+1] ~= nil then
+				g_currentMission.AutoDrive.mapMarker[_] =  g_currentMission.AutoDrive.mapMarker[_+1];
+			else
+				g_currentMission.AutoDrive.mapMarker[_] = nil;
+			end;
+		end;
+	end;
+	AutoDrive:MarkChanged()
+end
 
 function getFillType_new(fillType, implementTypeName)
 	local sFillType = g_i18n:getText("UNKNOWN"); 
