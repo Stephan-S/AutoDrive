@@ -6,7 +6,7 @@
 
 AutoDrive = {};
 AutoDrive = {};
-AutoDrive.Version = "1.1.2";
+AutoDrive.Version = "1.1.3";
 AutoDrive.config_changed = false;
 
 AutoDrive.directory = g_currentModDirectory;
@@ -892,6 +892,7 @@ function AutoDrive:InputHandling(vehicle, input)
 					else
 						vehicle.bcreateMode = false;
 						vehicle.bcreateModeDual = false;
+						input = "input_nextTarget";
 					end;
 						--vehicle.printMessage = g_i18n:getText("AD_Recording_off");
 					--vehicle.nPrintTime = 3000;
@@ -1986,6 +1987,7 @@ function AutoDrive:deactivate(self,stopVehicle)
 				self.bInitialized = false;
 				self.nCurrentWayPoint = 0;
 				self.bDrivingForward = true;
+				self.previousSpeed = 10;
 				if self.steeringEnabled == false then
 					self.steeringEnabled = true;
 				end

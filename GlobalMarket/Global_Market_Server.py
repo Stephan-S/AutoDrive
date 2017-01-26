@@ -1,8 +1,5 @@
-#new server for fs17_globalmarket by balu
-
 import socket, random, time, os.path, sys
 from threading import Thread, Lock
-from SocketServer import ThreadingMixIn
 import xml.etree.ElementTree as ET
 import select
 
@@ -182,7 +179,12 @@ class ClientListener(Thread):
 	def run(self):
 		while True:
 			lock.acquire()
-			ready_to_read,ready_to_write,in_error = select.select(self.connections,[],[],0)
+			ready_to_read = []
+			ready_to_write = []
+			in_error = []
+			if self.connections != []:
+				ready_to_read,ready_to_write,in_error = select.select(self.connections,[],[],0)
+
 			lock.release()
 			for incoming in ready_to_read:
 				try:
