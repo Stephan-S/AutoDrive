@@ -95,7 +95,7 @@ class ClientRegistrationThread(Thread):
 
 					self.sock.send("Ack|registered")
 
-					updateOneClient = ClientUpdater(self.connections, new_user, lock)
+					updateOneClient = ClientUpdater(self.connections, new_user, "", lock)
 					updateOneClient.start()
 			else:
 				self.sock.send("Nack|UnexpectedMessage")
@@ -110,28 +110,31 @@ class ClientRegistrationThread(Thread):
 
 	def removeConnection(self):
 		self.lock.acquire()
-		if self.conn in self.connections:
-			print "Connection closed"
-			self.conn.close()
-			self.connections.remove(self.conn)
-		for userID in self.users.keys():
-			if self.users[userID]["connection"] == conn:
-				print "User removed: ID: %s Name: %s" % (userID, self.users[userID]["username"])
-				del self.users[userID]
+		if self.conn is not None:
+			if self.conn in self.connections:
+				print "Connection closed"
+				self.conn.close()
+				self.connections.remove(self.conn)
+			for userID in self.users.keys():
+				if self.users[userID]["connection"] == conn:
+					print "User removed: ID: %s Name: %s" % (userID, self.users[userID]["username"])
+					del self.users[userID]
 		self.lock.release()
 
 class ClientUpdater(Thread):
 
-	def __init__(self, connections, user, lock):
+	def __init__(self, connections, user, chatMessage, lock):
 		Thread.__init__(self)
 		self.connections = connections
 		self.user = user
 		self.lock = lock
+		self.chatMessage = chatMessage
 
 	def run(self):
 		xmlFileName = 'economy_data_server_%s.xml' % self.user["hub"]
 		tree = None
 		lock.acquire()
+
 		if os.path.isfile(xmlFileName):
 			#print("xml file exists")
 			with open(xmlFileName, 'rb') as xml_file:
@@ -145,7 +148,10 @@ class ClientUpdater(Thread):
 		data = ET.tostring(root, encoding="us-ascii", method="xml")
 
 		try:
-			msg = "Update|%s//transmissionComplete" % data
+			if self.chatMessage == "":
+				msg = "Update|%s//transmissionComplete" % data
+			else:
+				msg = "Chat|%s//transmissionComplete" % self.chatMessage
 			self.user["connection"].send(msg)
 		except socket.error:
 
@@ -239,6 +245,10 @@ class ClientListener(Thread):
 
 								else:
 									incoming.send("Nack|Update not accepted//transmissionComplete")
+							elif messageType == "Chat":
+								username, chatMessage = message.split("/")
+								messageOut = "%s: %s" % (username, chatMessage)
+								self.updateClients(current_user["hub"], messageOut)
 						else:
 							print "Dont know the client - Sending Nack"
 							incoming.send("Nack|Unknown Client//transmissionComplete")
@@ -284,11 +294,11 @@ class ClientListener(Thread):
 
 		return True
 
-	def updateClients(self, hub):
+	def updateClients(self, hub, chatMessage = ""):
 		lock.acquire()
 		for user in self.users:
 			if self.users[user]["hub"] == hub:
-				updateOneClient = ClientUpdater(self.connections, self.users[user], lock)
+				updateOneClient = ClientUpdater(self.connections, self.users[user], chatMessage, lock)
 				updateOneClient.start()
 		lock.release()
 

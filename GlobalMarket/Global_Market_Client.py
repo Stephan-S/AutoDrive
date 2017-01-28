@@ -126,6 +126,17 @@ class Client((threading.Thread)):
                         time.sleep(30)
                         self.register()
 
+                    lock.acquire()
+                    readIn = False
+                    while not readIn:
+                        try:
+                            tree = ET.parse('economy_data.xml')
+                            rootLocal = tree.getroot()
+                            readIn = True
+                        except:
+                            print "Problem accessing the xml file"
+                    lock.release()
+
                     if messageType == "Update":
                         xml, over = message.split("//")
                         lock.acquire()
@@ -178,7 +189,14 @@ class Client((threading.Thread)):
                                 lock.acquire()
                                 self.updateInfo["send"] = False
                                 lock.release()
-
+                        elif messageType == "Chat":
+                            lock.acquire()
+                            print "New chat message: %s" % message
+                            self.root[0].find('chatMessageIn').text = message
+                            self.saveTree(self.root[0])
+                            self.updateInfo["send"] = False
+                            time.sleep(2)
+                            lock.release()
                         else:
                             print "unknown message from server. Should probably update your mod right now. Message: %s" % self.data
 
@@ -219,6 +237,30 @@ class Client((threading.Thread)):
                         print "Problem accessing the xml file"
 
                 changed = False
+                chatMessageOut = rootLocal.find('chatMessageOut').text
+                #print "Current message: %s" % chatMessageOut
+                if chatMessageOut != "" and chatMessageOut is not None and self.connection[0] != "null" and not self.updateInfo[
+                    "send"]:
+                    messageType = "Chat"
+                    msg = "%s|%s/%s" % (messageType, self.userName, chatMessageOut)
+                    rootLocal.find('chatMessageOut').text = ""
+                    self.saveTree(rootLocal)
+                    time.sleep(1)
+                    try:
+                        print "Sending chat message to server %s" % msg
+                        self.connection[0].send(msg)
+                        self.updateInfo["send"] = True
+                        self.updateInfo["commodity"] = "null"
+                        self.updateInfo["timeout"] = 15
+                    except socket.error:
+                        e = sys.exc_info()[0]
+                        print "Error while sending chat message to server %s" % e
+                        self.updateInfo["registered"] = False
+                        self.connection[0] != "null"
+                        self.registered = False
+                        time.sleep(60)
+                        self.register()
+
                 commidityList = self.root[0].find('commodities')
                 for commodity in commidityList:
                     name = commodity.find('name').text
