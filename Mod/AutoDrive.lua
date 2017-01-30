@@ -561,18 +561,17 @@ function AutoDrive:loadHud()
 	AutoDrive.Hud.rowCurrent = 1;
 	AutoDrive.Hud.cols = 9;
 	AutoDrive.Hud.colCurrent = 1;
-	
-	
-	AutoDrive.Hud.posX = 0.80468750145519;
-	AutoDrive.Hud.posY = 0.207;
-	AutoDrive.Hud.width = 0.176;
-	AutoDrive.Hud.height = 0.13  + 0.015;
-	AutoDrive.Hud.borderX = 0.004;
-	AutoDrive.Hud.borderY = AutoDrive.Hud.borderX * (g_screenWidth / g_screenHeight);
-	
-	AutoDrive.Hud.buttonWidth = 0.015;
-	AutoDrive.Hud.buttonHeight = AutoDrive.Hud.buttonWidth * (g_screenWidth / g_screenHeight);
-	
+
+	local uiScale = g_gameSettings:getValue("uiScale")
+	local numButtons = 9
+	local buttonSize = 22
+	local gapSize = 3
+	AutoDrive.Hud.borderX,      AutoDrive.Hud.borderY       = getNormalizedScreenValues(uiScale * gapSize,    uiScale * gapSize)
+	AutoDrive.Hud.buttonWidth,  AutoDrive.Hud.buttonHeight  = getNormalizedScreenValues(uiScale * buttonSize, uiScale * buttonSize)
+	AutoDrive.Hud.width,        AutoDrive.Hud.height        = getNormalizedScreenValues((numButtons * (gapSize+buttonSize) + gapSize)*uiScale, 120*uiScale)
+	AutoDrive.Hud.posX   = (g_currentMission.vehicleHudBg.x + g_currentMission.vehicleHudBg.width)  - AutoDrive.Hud.width
+	AutoDrive.Hud.posY   = (g_currentMission.vehicleHudBg.y + g_currentMission.vehicleHudBg.height) + AutoDrive.Hud.buttonHeight
+
 	local img1 = Utils.getNoNil("img/Background.dds", "empty.dds" )
 	local state, result = pcall( Utils.getFilename, img1, AutoDrive.directory )
 	if not state then
@@ -1839,11 +1838,6 @@ function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
 				end;
 				
 			end;
-
-			AutoDrive.Hud.posX = 0.80468750145519;
-			AutoDrive.Hud.posY = 0.207;
-			AutoDrive.Hud.width = 0.176;
-			AutoDrive.Hud.height = 0.13;
 
 			if posX > (AutoDrive.Hud.Background.close_small.posX) and posX < (AutoDrive.Hud.Background.close_small.posX + AutoDrive.Hud.Background.close_small.width) and posY > (AutoDrive.Hud.Background.close_small.posY) and posY < (AutoDrive.Hud.Background.close_small.posY + AutoDrive.Hud.Background.close_small.height) then
 				if AutoDrive.Hud.showHud == false then
