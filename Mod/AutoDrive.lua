@@ -1270,6 +1270,7 @@ function AutoDrive:InputHandling(vehicle, input)
 		end;
 
 		if input == "input_recalculate" and g_server ~= nil and g_dedicatedServerInfo == nil then
+print(("%s - Recalculation starting"):format(getDate("%H:%M:%S")))
 			AutoDrive:ContiniousRecalculation();
 
 		end;
@@ -1361,6 +1362,7 @@ function AutoDrive:ContiniousRecalculation()
 		for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
 			if markerFinished == false then
 				if i == g_currentMission.AutoDrive.Recalculation.nextMarker then
+print(("%s - Recalculating: %s"):format(getDate("%H:%M:%S"), marker.name))
 
 					local tempAD = AutoDrive:dijkstra(g_currentMission.AutoDrive.mapWayPoints, marker.id,"incoming");
 
@@ -1379,6 +1381,7 @@ function AutoDrive:ContiniousRecalculation()
 			end;
 
 		end;
+print(("%s - Recalculation finished"):format(getDate("%H:%M:%S")))
 
 		if g_currentMission.AutoDrive.adXml ~= nil then
 			setXMLString(g_currentMission.AutoDrive.adXml, "AutoDrive.Recalculation","false");
@@ -1413,77 +1416,53 @@ function AutoDrive:onLeave()
 	end
 end;
 
-function AutoDrive:dijkstra(Graph,start,setToUse)
-	
-	--init
-	--initdijkstra(Graph,Start,distance,pre,Q);
-	if self.ad == nil then
-		self.ad = {};--g_currentMission.AutoDrive.ad;
-	end;
-	
-	self.ad.Q = AutoDrive:graphcopy(Graph);
-	self.ad.distance = {};
-	self.ad.pre = {};
-	for i in pairs(Graph) do
-		self.ad.distance[i] = -1;
-		self.ad.pre[i] = -1;
-	end;
-	
-	self.ad.distance[start] = 0;
-	for i in pairs(self.ad.Q[start][setToUse]) do
-		--print("out of start: " .. self.ad.Q[start][setToUse][i] );
-		self.ad.distance[self.ad.Q[start][setToUse][i]] = 1 --self.ad.Q[start]["out_cost"][i];
-		self.ad.pre[self.ad.Q[start][setToUse][i]] = start;
-	end;
-	--init end
-	
-	while next(self.ad.Q,nil) ~= nil do
-		local shortest = 10000000;
-		local shortest_id = -1;
-		for i in pairs(self.ad.Q) do
-			
-			if self.ad.distance[self.ad.Q[i]["id"]] < shortest and self.ad.distance[self.ad.Q[i]["id"]] ~= -1 then
-				shortest = self.ad.distance[self.ad.Q[i]["id"]];
-				shortest_id = self.ad.Q[i]["id"];
-			end;
-		end;
-		
+function AutoDrive:dijkstra(graph, start, setToUse)
+
+	-- Init and copy graph. Its elements are not modified, so no need to deep-copy it.
+	local workGraph = {}
+	local newPaths = { distance = {}, pre = {} }
+	for id, wp in pairs(graph) do
+        newPaths.distance[id] = math.huge
+		newPaths.pre[id] = -1
+		workGraph[id] = wp
+	end
+
+	newPaths.distance[start] = 0
+
+	-- Walk the graph
+	while next(workGraph, nil) ~= nil do
+		local shortest_dist = math.huge
+		local shortest_id = -1
+
+		for _, wp in pairs(workGraph) do
+			if shortest_dist > newPaths.distance[wp.id] then
+				shortest_dist = newPaths.distance[wp.id]
+				shortest_id = wp.id
+			end
+		end
+
 		if shortest_id == -1 then
-			self.ad.Q = {};
+			workGraph = {}
 		else
-			for i in pairs(self.ad.Q[shortest_id][setToUse]) do
-				local inQ = false;
-				for i2 in pairs(self.ad.Q) do
-					if self.ad.Q[i2]["id"] ==  self.ad.Q[shortest_id][setToUse][i] then
-						inQ = true;
-					end;
-				end;
-				if inQ == true then
-					--distanceupdate
-					local alternative = shortest + 1 --self.ad.Q[shortest_id]["out_cost"][i];
-					if alternative < self.ad.distance[self.ad.Q[shortest_id][setToUse][i]] or self.ad.distance[self.ad.Q[shortest_id][setToUse][i]] == -1 then
-						--print("found shorter alternative for " .. Q[shortest_id][setToUse][i] .. " via " .. shortest_id .. " new distance: " .. alternative );
-						self.ad.distance[self.ad.Q[shortest_id][setToUse][i]] = alternative;
-						self.ad.pre[self.ad.Q[shortest_id][setToUse][i]] = shortest_id;
-					end;
-				end;			
-			end;
-			
-			self.ad.Q[shortest_id] = nil;
-		end;
-		
-	end;	
-	--print("distance to 3: " .. self.ad.distance[3]);	
-	
-	for i in pairs(self.ad.pre) do
-		--print("pre "..i .. " = ".. self.ad.pre[i]);
-	end;
-	
-	--shortestPath(Graph,self.ad.distance,self.ad.pre,1,3);
-	
-	return self.ad;
-	
-end;
+			local x1,z1 = workGraph[shortest_id].x, workGraph[shortest_id].z
+			for _, id in pairs(workGraph[shortest_id][setToUse]) do
+				local wp = workGraph[id]
+				if nil ~= wp then
+					local alternative = shortest_dist + getDistance(x1,z1, wp.x,wp.z)
+					if alternative < newPaths.distance[id] then
+						newPaths.distance[id] = alternative
+						newPaths.pre[id] = shortest_id
+					end
+				end
+			end
+
+			workGraph[shortest_id] = nil
+		end
+	end
+
+	return newPaths
+
+end
 
 function AutoDrive:graphcopy(Graph)
 	local Q = {};
