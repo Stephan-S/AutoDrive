@@ -1100,18 +1100,23 @@ function AutoDrive:InputHandling(vehicle, input)
 				if vehicle.bShowSelectedDebugPoint == false then
 					vehicle.bShowSelectedDebugPoint = true;
 
-					local debugCounter = 1;
+					-- Locate the adjacent waypoints, within a certain radius of vehicle
+					local foundWithDistance = {}
+					local x1,y1,z1 = getWorldTranslation(vehicle.components[1].node);
 					for i,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-						local x1,y1,z1 = getWorldTranslation(vehicle.components[1].node);
 						local distance = getDistance(point.x,point.z,x1,z1);
-
 						if distance < 15 then
-							vehicle.DebugPointsIterated[debugCounter] = point;
-							debugCounter = debugCounter + 1;
+							table.insert(foundWithDistance, {wpId=i, distance=distance})
 						end;
 					end;
+					-- Sort so very-nearest waypoint becomes first in list
+					table.sort(foundWithDistance, function(a,b) return a.distance < b.distance; end);
+					-- Fill the 'neighbouring waypoints' table
+					vehicle.DebugPointsIterated = {}
+					for _,elem in pairs(foundWithDistance) do
+						table.insert(vehicle.DebugPointsIterated, g_currentMission.AutoDrive.mapWayPoints[elem.wpId])
+					end
 					vehicle.nSelectedDebugPoint = 1;
-
 
 					--vehicle.printMessage = g_i18n:getText("AD_Debug_show_closest_neighbors")
 					--vehicle.nPrintTime = 10000;
